@@ -63,6 +63,8 @@ export interface Building {
   rallyTile: number;
   /** Unit id working this farm, 0 if none. */
   worker: number;
+  /** Age advance ('age2') or technology being researched here. */
+  research: { id: string; remaining: number; total: number } | null;
 }
 
 export interface Player {
@@ -70,6 +72,9 @@ export interface Player {
   heroLevel: number; heroXp: number;
   /** Game time at which a fallen hero returns, -1 while alive. */
   heroRespawn: number;
+  upgrades: string[];
+  /** Game time at which the last Ana Merkez was lost, -1 while one stands. */
+  tcLostAt: number;
 }
 
 export interface GameEvent { time: number; player: number; kind: string; text: string; x?: number; y?: number }
@@ -90,7 +95,24 @@ export interface Game {
   fogVersion: number;
   /** war[a][b] is true once a and b are fighting. */
   war: boolean[][];
+  /** Game time at which the peace period ends. */
+  peaceEnd: number;
+  relic: Relic;
+  /** Winning player once the match is decided, -1 before that. */
+  winner: number;
+  winKind: '' | 'conquest' | 'relic';
+}
+
+export interface Relic {
+  x: number; y: number;
+  /** Player holding the relic, -1 if nobody. */
+  owner: number;
+  /** Player currently capturing, -1 if nobody. */
+  captor: number;
+  progress: number;
+  /** Game time at which the current owner took it. */
+  heldSince: number;
 }
 
 export interface PlayerSetup { race: RaceId; isAI: boolean; name?: string }
-export interface GameOptions { seed: number; players: PlayerSetup[] }
+export interface GameOptions { seed: number; players: PlayerSetup[]; peaceSeconds?: number }

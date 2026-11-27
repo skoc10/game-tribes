@@ -5,11 +5,16 @@ import type { Game } from './types';
 export function hostile(s: Game, a: number, b: number): boolean {
   if (a === b) return false;
   if (a < 0 || b < 0) return true;
-  return s.war[a][b];
+  return !inPeace(s) && s.war[a][b];
 }
 
-/** Whether a may open hostilities against b right now. Later phases add the peace period and pacts. */
-export function mayAttack(_s: Game, _a: number, _b: number): { ok: boolean; reason?: string } {
+export function inPeace(s: Game): boolean {
+  return s.time < s.peaceEnd;
+}
+
+/** Whether a may open hostilities against b right now. */
+export function mayAttack(s: Game, _a: number, _b: number): { ok: boolean; reason?: string } {
+  if (inPeace(s)) return { ok: false, reason: 'Barış süresi bitmeden başka bir halka saldıramazsın' };
   return { ok: true };
 }
 

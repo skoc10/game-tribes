@@ -105,6 +105,8 @@ export interface Game {
   winKind: '' | 'conquest' | 'relic';
   diplo: Diplo;
   ai: AIState[];
+  /** Units brought to zero this tick; they are removed once every unit has acted. */
+  fallen: { unit: Unit; killer: number }[];
 }
 
 export interface Pact {
@@ -156,4 +158,8 @@ export interface Relic {
 
 export type Personality = '' | 'trader' | 'expander';
 export interface PlayerSetup { race: RaceId; isAI: boolean; name?: string; personality?: Personality }
-export interface GameOptions { seed: number; players: PlayerSetup[]; peaceSeconds?: number }
+export interface GameOptions {
+  seed: number; players: PlayerSetup[]; peaceSeconds?: number;
+  /** Rotates which start position each seat gets (0 = seat 0 at the top). */
+  seatOffset?: number;
+}

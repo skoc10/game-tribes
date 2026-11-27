@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { issue } from '../src/sim/commands';
 import { CFG } from '../src/sim/data';
 import { createGame } from '../src/sim/state';
+import { freeSite } from './helpers';
 
 const game = () => createGame({ seed: 1, players: [{ race: 'sancak', isAI: false }, { race: 'kul', isAI: true }] });
 
@@ -25,14 +26,14 @@ describe('placement and cancelling', () => {
 
   it('refunds a cancelled foundation and frees its tiles', () => {
     const s = game();
-    const b = s.bases[0];
     const v = s.units.find((u) => u.owner === 0 && u.type === 'villager')!;
-    expect(issue(s, 0, { type: 'build', units: [v.id], building: 'house', tx: b.x + 6, ty: b.y + 6 }).ok).toBe(true);
+    const site = freeSite(s, 0, 'house');
+    expect(issue(s, 0, { type: 'build', units: [v.id], building: 'house', ...site }).ok).toBe(true);
     const house = s.buildings[s.buildings.length - 1];
     expect(issue(s, 1, { type: 'cancel', building: house.id }).ok).toBe(false);
     expect(issue(s, 0, { type: 'cancel', building: house.id }).ok).toBe(true);
     expect(s.players[0].res.wood).toBe(CFG.startResources.wood);
-    expect(s.occ[(b.y + 6) * s.w + b.x + 6]).toBe(0);
+    expect(s.occ[site.ty * s.w + site.tx]).toBe(0);
   });
 
   it('accepts a rally point only on a resource tile', () => {

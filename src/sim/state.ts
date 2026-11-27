@@ -26,18 +26,29 @@ export function log(s: Game, player: number, kind: string, text: string, x?: num
 }
 
 function placeNode(s: Game, x: number, y: number, terrain: number, amount: number): void {
-  x = Math.round(x); y = Math.round(y);
-  if (!inBounds(s, x, y)) return;
-  const i = y * s.w + x;
-  if (s.terrain[i] !== T_GRASS || s.occ[i] !== 0) return;
-  s.terrain[i] = terrain;
-  s.amount[i] = amount;
+  // Floor, not round: flooring a point and its mirror image always lands on mirrored tiles.
+  x = Math.floor(x); y = Math.floor(y);
+  // If the spot is taken, use the nearest free one, so every seat ends up with the same number of nodes.
+  for (let r = 0; r <= 4; r++)
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !inBounds(s, x + dx, y + dy)) continue;
+      const i = (y + dy) * s.w + x + dx;
+      if (s.terrain[i] !== T_GRASS || s.occ[i] !== 0) continue;
+      s.terrain[i] = terrain;
+      s.amount[i] = amount;
+      return;
+    }
 }
 
 function blob(s: Game, cx: number, cy: number, r: number, terrain: number, amount: number): void {
-  for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++)
-    for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++)
-      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) placeNode(s, x, y, terrain, amount);
+  // Tile centres are tested, so a blob and its mirror image cover mirrored tiles.
+  for (let y = Math.floor(cy - r); y <= Math.floor(cy + r); y++)
+    for (let x = Math.floor(cx - r); x <= Math.floor(cx + r); x++) {
+      if (!inBounds(s, x, y) || (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 > r * r) continue;
+      const i = y * s.w + x;
+      // Overlaps are skipped rather than moved: moving them would depend on scan direction.
+      if (s.terrain[i] === T_GRASS && s.occ[i] === 0) { s.terrain[i] = terrain; s.amount[i] = amount; }
+    }
 }
 
 /** True if every tile of a size×size footprint at (tx, ty) is free. */
@@ -116,7 +127,7 @@ export function createGame(opts: GameOptions): Game {
     peaceEnd: opts.peaceSeconds ?? CFG.peaceSeconds,
     relic: { x: size / 2, y: size / 2, owner: -1, captor: -1, progress: 0, heldSince: 0 },
     winner: -1, winKind: '',
-    diplo: undefined as unknown as Game['diplo'], ai: [],
+    diplo: undefined as unknown as Game['diplo'], ai: [], fallen: [],
   };
   const n = opts.players.length;
   const cx = size / 2, cy = size / 2, R = size * 0.31;
@@ -129,12 +140,20 @@ export function createGame(opts: GameOptions): Game {
     });
     s.fog.push({ explored: new Uint8Array(size * size), visible: new Uint8Array(size * size) });
     s.war.push(opts.players.map(() => false));
-    const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const bx = Math.round(cx + Math.cos(ang) * R), by = Math.round(cy + Math.sin(ang) * R);
+    // Start positions sit on a circle around the map centre. The first angle is tilted off the axes
+    // so that no offset is exactly zero, and offsets snap to half tiles by magnitude: an offset and
+    // its negation then land on exactly mirrored tiles, which makes two- and four-player maps
+    // point-symmetric. (An earlier layout left one base a tile off its mirror image, with less room
+    // behind it, and that seat lost most matches.)
+    const ang = -Math.PI * (75 / 180) + (((i + (opts.seatOffset ?? 0)) % n) * 2 * Math.PI) / n;
+    const snap = (v: number) => Math.sign(v) * (Math.floor(Math.abs(v)) + 0.5);
+    const tcx = cx + snap(Math.cos(ang) * R), tcy = cy + snap(Math.sin(ang) * R);
+    const bx = Math.floor(tcx), by = Math.floor(tcy);
     s.bases.push({ x: bx, y: by });
     // d points from the base to the map centre; p is perpendicular to it.
-    const dx = -Math.cos(ang), dy = -Math.sin(ang), px = -dy, py = dx;
-    const at = (along: number, side: number) => ({ x: bx + dx * along + px * side, y: by + dy * along + py * side });
+    const len = Math.hypot(cx - tcx, cy - tcy);
+    const dx = (cx - tcx) / len, dy = (cy - tcy) / len, px = -dy, py = dx;
+    const at = (along: number, side: number) => ({ x: tcx + dx * along + px * side, y: tcy + dy * along + py * side });
 
     const tc = addBuilding(s, i, 'towncenter', bx - 1, by - 1, true);
     const forest = at(-8, 0), forest2 = at(-6, 7), bush = at(0, 5), crystal = at(0, -5);
@@ -151,9 +170,9 @@ export function createGame(opts: GameOptions): Game {
     spawnNear(s, tc, 'scout');
     spawnNear(s, tc, 'hero');
     // One camp beside each base and one between each pair of neighbours.
-    const near = at(3, -11);
+    const near = at(2, -12);
     const between = { x: cx + Math.cos(ang + Math.PI / n) * R, y: cy + Math.sin(ang + Math.PI / n) * R };
-    for (const c of [near, between]) s.camps.push({ x: Math.round(c.x) + 0.5, y: Math.round(c.y) + 0.5, tier: 1, alive: 0, respawnAt: -1 });
+    for (const c of [near, between]) s.camps.push({ x: Math.floor(c.x) + 0.5, y: Math.floor(c.y) + 0.5, tier: 1, alive: 0, respawnAt: -1 });
   });
   s.camps.forEach((_, i) => spawnCamp(s, i));
   initDiplo(s);

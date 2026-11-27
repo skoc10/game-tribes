@@ -39,15 +39,36 @@ function look(s: Game, me: number): View {
 /** A free site near the base with a clear ring around it, so buildings never seal anything in. */
 function findSite(v: View, type: string): { tx: number; ty: number } | null {
   const { s, base } = v, size = BUILDINGS[type].size;
-  for (let r = 3; r <= 16; r++)
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+  // Sites are ranked only by quantities that turn with the base (distance from the map centre, from
+  // camps, and position relative to the base's own facing), never by scan order. Otherwise mirrored
+  // bases build differently: one seat once put its barracks beside a camp and built farms more slowly.
+  const campDistance = (x: number, y: number) => Math.min(...s.camps.map((c) => Math.hypot(c.x - x, c.y - y)));
+  const bcx = base.x + 0.5, bcy = base.y + 0.5;
+  const fx = s.center.x - bcx, fy = s.center.y - bcy, flen = Math.hypot(fx, fy) || 1;
+  {
+    let best: { tx: number; ty: number } | null = null, bestKey: number[] = [];
+    for (let dy = -18; dy <= 18; dy++) for (let dx = -18; dx <= 18; dx++) {
       const tx = base.x + dx, ty = base.y + dy;
       if (!canPlace(s, type, tx, ty)) continue;
       let clear = true;
       for (let y = ty - 1; y <= ty + size && clear; y++) for (let x = tx - 1; x <= tx + size; x++) if (!walkable(s, x, y)) { clear = false; break; }
-      if (clear) return { tx, ty };
+      const sx = tx + size / 2, sy = ty + size / 2;
+      const camp = campDistance(sx, sy);
+      // Stay out of reach of camps altogether.
+      if (!clear || camp < CFG.camp.leash) continue;
+      // Sideways offset from the base's facing line: positive on one hand, negative on the other.
+      const side = ((sx - bcx) * fy - (sy - bcy) * fx) / flen;
+      // Nearest ring first, measured from the site's centre so that mirrored sites share a ring
+      // (measuring from a corner does not mirror).
+      const ring = Math.ceil(Math.max(Math.abs(sx - bcx), Math.abs(sy - bcy)));
+      if (ring < 3 + size / 2 || ring > 17) continue;
+      const key = [-ring, Math.round(Math.hypot(sx - s.center.x, sy - s.center.y) * 2), Math.round(camp * 2), -Math.round(Math.abs(side) * 2), Math.sign(Math.round(side * 2))];
+      let better = !best;
+      for (let k = 0; k < key.length && !better; k++) { if (key[k] > bestKey[k]) better = true; else if (key[k] < bestKey[k]) break; }
+      if (better) { best = { tx, ty }; bestKey = key; }
     }
+    if (best) return best;
+  }
   return null;
 }
 
@@ -191,9 +212,21 @@ function command(v: View): void {
     const d = dist(c.x, c.y, base.x, base.y);
     if (c.alive > 0 && v.army.length >= A.campArmy[c.tier - 1] && d < campD) { camp = i; campD = d; }
   });
-  if (camp >= 0) return sendArmy(v, s.camps[camp].x, s.camps[camp].y);
   const dx = Math.sign(Math.round(s.center.x - base.x)), dy = Math.sign(Math.round(s.center.y - base.y));
-  sendArmy(v, base.x + dx * 5 + 0.5, base.y + dy * 5 + 0.5);
+  const rallyX = base.x + dx * 5 + 0.5, rallyY = base.y + dy * 5 + 0.5;
+  if (camp >= 0) {
+    // Go as one group: recruits sent to a camp one at a time just feed it. Fresh units wait at the
+    // rally point until enough have gathered (fewer are needed to reinforce a fight already under way).
+    const c = s.camps[camp];
+    const fighting = v.army.filter((u) => dist(u.x, u.y, c.x, c.y) < CFG.camp.leash).length;
+    const waiting = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) <= 4);
+    const need = fighting > 0 ? A.campReinforce : A.campArmy[c.tier - 1];
+    if (waiting.length >= need) issue(s, me, { type: 'attackMove', units: waiting.map((u) => u.id), x: c.x, y: c.y });
+    const stragglers = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) > 4 && dist(u.x, u.y, c.x, c.y) >= CFG.camp.leash).map((u) => u.id);
+    if (stragglers.length) issue(s, me, { type: 'move', units: stragglers, x: rallyX, y: rallyY });
+    return;
+  }
+  sendArmy(v, rallyX, rallyY);
 }
 
 /** Opens hostilities the honest way: a pact partner first gets the notice period. */

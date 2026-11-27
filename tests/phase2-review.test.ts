@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { issue } from '../src/sim/commands';
+import { walkable } from '../src/sim/path';
 import { addBuilding, canPlace } from '../src/sim/state';
 import { CFG } from '../src/sim/data';
 import { T_TREE } from '../src/sim/types';
@@ -30,7 +31,10 @@ describe('phase 2 review fixes', () => {
   it('beasts chase archers who shoot them from outside the aggro circle', () => {
     const s = newGame();
     const camp = s.camps[0];
-    const archers = squad(s, 0, 'archer', 3, Math.floor(camp.x) + 6, Math.floor(camp.y) - 1);
+    // Stand the archers on open ground six tiles from the camp, whichever side is clear.
+    const cx = Math.floor(camp.x), cy = Math.floor(camp.y);
+    const [dx] = [6, -6].filter((d) => [-1, 0, 1].every((k) => walkable(s, cx + d, cy + k) && walkable(s, cx + d / 2, cy + k)));
+    const archers = squad(s, 0, 'archer', 3, cx + dx, cy - 1);
     const beast = s.units.find((u) => u.camp === 0)!;
     issue(s, 0, { type: 'attack', units: archers.map((u) => u.id), target: beast.id, building: false });
     run(s, 30);

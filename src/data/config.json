@@ -176,6 +176,7 @@
     "attackArmy": 10,
     "attackEdge": 1.2,
     "relicArmy": 14,
+    "campReinforce": 4,
     "crystalEnough": 120,
     "woodEnough": 400,
     "retreatArmy": 3,

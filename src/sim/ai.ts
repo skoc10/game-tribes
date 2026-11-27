@@ -224,6 +224,8 @@ function offer(s: Game, me: number, to: number): void {
  */
 function breakStandOff(v: View): void {
   const { s, me } = v, st = s.ai[me];
+  const seenBefore = st.blocker;
+  st.blocker = -1;
   if (s.relic.owner >= 0) return;
   const near = (u: Unit) => isFighter(u) && dist(u.x, u.y, s.relic.x, s.relic.y) <= CFG.relic.radius;
   if (!v.army.some(near)) return;
@@ -232,6 +234,9 @@ function breakStandOff(v: View): void {
   // Ties go to the lower player id so the choice does not depend on unit order.
   const rival = [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
   if (!rival || rival[1] < 2) return;
+  // Someone merely passing through is not a stand-off: act only if they are still there a tick later.
+  st.blocker = rival[0];
+  if (seenBefore !== rival[0]) return;
   st.enemy = rival[0];
   declare(s, me, rival[0]);
 }
@@ -282,6 +287,9 @@ function strategy(v: View): void {
   } else if (st.goal !== 'attack' && v.soldiers.length >= A.relicArmy * st.nerve) {
     st.goal = 'relic';
     breakStandOff(v);
+  } else if (st.goal === 'relic' && s.relic.owner !== me && v.soldiers.length < A.retreatArmy) {
+    // Too few left to hold anything: fall back and rebuild.
+    st.goal = 'none';
   }
 }
 

@@ -1,6 +1,6 @@
 /**
  * Headless balance check: plays AI-versus-AI matches and reports win rates.
- *   npx tsx scripts/simulate.ts [matches=200] [all|mirror] [seedBase=5000]
+ *   npx tsx scripts/simulate.ts [matches=200] [all|mirror] [seedBase=1000]
  *
  * Tune on one seed base and confirm on another: numbers tuned and measured on the same
  * seeds look better than they are.
@@ -9,7 +9,7 @@ import { runMatch, type Seat } from '../src/sim/headless';
 
 const matches = Number(process.argv[2]) || 200;
 const mode = process.argv[3] ?? 'all';
-const seedBase = Number(process.argv[4]) || 5000;
+const seedBase = Number(process.argv[4]) || 1000;
 
 /** Share with a 95% confidence interval (normal approximation). */
 function share(n: number, d: number): string {
@@ -19,7 +19,7 @@ function share(n: number, d: number): string {
 }
 
 function series(title: string, seatsFor: (i: number) => Seat[], label: (seat: Seat, index: number, i: number) => string): void {
-  const wins: Record<string, number> = {}, kinds: Record<string, number> = {};
+  const wins: Record<string, number> = {}, played: Record<string, number> = {}, kinds: Record<string, number> = {};
   let total = 0, minutes = 0, undecided = 0, firstSeat = 0;
   for (let i = 0; i < matches; i++) {
     const seats = seatsFor(i);
@@ -27,13 +27,15 @@ function series(title: string, seatsFor: (i: number) => Seat[], label: (seat: Se
     if (r.winner < 0) { undecided++; continue; }
     total++;
     minutes += r.minutes;
+    seats.forEach((seat, index) => { const k = label(seat, index, i); played[k] = (played[k] ?? 0) + 1; });
     if (r.winner === 0) firstSeat++;
     const key = label(seats[r.winner], r.winner, i);
     wins[key] = (wins[key] ?? 0) + 1;
     kinds[r.winKind] = (kinds[r.winKind] ?? 0) + 1;
   }
   console.log(`\n${title} — ${matches} maç, tohum ${seedBase}–${seedBase + matches - 1}`);
-  for (const [k, n] of Object.entries(wins).sort()) console.log(`  ${k}: ${n} galibiyet, ${share(n, total)}`);
+  // Shares are per game that label actually played, so labels that sit out some matches compare fairly.
+  for (const k of Object.keys(played).sort()) console.log(`  ${k}: ${wins[k] ?? 0}/${played[k]} galibiyet, ${share(wins[k] ?? 0, played[k])}`);
   console.log(`  zafer türü: ${Object.entries(kinds).map(([k, n]) => `${k} ${n}`).join(', ') || '—'}`);
   console.log(`  ortalama süre: ${total ? (minutes / total).toFixed(1) : '—'} dk; sonuçsuz (60 dk): ${undecided}; ilk koltuk: ${share(firstSeat, total)}`);
 }

@@ -160,7 +160,7 @@ export function createGame(opts: GameOptions): Game {
   // Seeded variation so that no two matches play out identically.
   s.ai = s.players.map(() => ({
     nextThink: rand(s) * CFG.ai.thinkSeconds, nextStrategy: rand(s) * CFG.ai.strategySeconds,
-    enemy: -1, goal: 'none', nerve: 0.8 + rand(s) * 0.4, lastOffer: s.players.map(() => -999),
+    enemy: -1, goal: 'none', nerve: 0.8 + rand(s) * 0.4, lastOffer: s.players.map(() => -999), blocker: -1,
   }));
   updateFog(s);
   return s;

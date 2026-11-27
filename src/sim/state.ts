@@ -44,6 +44,8 @@ export function canPlace(s: Game, type: string, tx: number, ty: number): boolean
   const size = BUILDINGS[type].size;
   for (let y = ty; y < ty + size; y++)
     for (let x = tx; x < tx + size; x++) if (!walkable(s, x, y)) return false;
+  // Camp sites stay clear so creatures always have somewhere to return to.
+  if (s.camps.some((c) => c.x > tx - 3 && c.x < tx + size + 3 && c.y > ty - 3 && c.y < ty + size + 3)) return false;
   // A unit standing inside the footprint would be walled in.
   return !s.units.some((u) => u.x >= tx && u.x < tx + size && u.y >= ty && u.y < ty + size);
 }

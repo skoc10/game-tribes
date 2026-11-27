@@ -121,7 +121,7 @@ export function issue(s: Game, player: number, cmd: Command): Result {
       return OK;
     }
     case 'explore': {
-      for (const u of own(s, player, cmd.units)) if (u.type === 'scout') setOrder(u, { kind: 'explore' });
+      for (const u of own(s, player, cmd.units)) if (u.type === 'scout') setOrder(u, { kind: 'explore', skip: [] });
       return OK;
     }
     case 'rally': {

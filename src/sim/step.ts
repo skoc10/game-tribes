@@ -73,29 +73,25 @@ function travel(s: Game, u: Unit, x: number, y: number, prefix: string): boolean
 }
 
 /** Scouts head for the nearest unexplored walkable tile, steering around live camps. */
-function stepExplore(s: Game, u: Unit): void {
+function stepExplore(s: Game, u: Unit, skip: number[]): void {
   const explored = s.fog[u.owner].explored;
-  const avoid = (x: number, y: number) => nearLiveCamp(s, x + 0.5, y + 0.5);
-  if (u.path && u.pathIdx < u.path.length) {
-    const last = u.path[u.path.length - 1];
-    if (!explored[last]) {
-      if (goTo(s, u, u.pathKey, () => false, 0, 0) === 'moving') return;
-    }
+  const nearCamp = (x: number, y: number) => nearLiveCamp(s, x + 0.5, y + 0.5);
+  // Keep following the current path while its destination is still unknown.
+  if (u.path && u.pathIdx < u.path.length && !explored[u.path[u.path.length - 1]]) {
+    if (goTo(s, u, u.pathKey, () => false, 0, 0) === 'moving') return;
   }
   let best = -1, bestD = Infinity;
-  for (let y = 1; y < s.h; y += 3) for (let x = 1; x < s.w; x += 3) {
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
     const i = y * s.w + x;
-    if (explored[i] || !walkable(s, x, y) || avoid(x, y)) continue;
+    if (explored[i] || !walkable(s, x, y) || nearCamp(x, y) || skip.includes(i)) continue;
     const d = (x - u.x) ** 2 + (y - u.y) ** 2;
     if (d < bestD) { bestD = d; best = i; }
   }
   if (best < 0) return setOrder(u, { kind: 'idle' });
   const bx = best % s.w, by = Math.floor(best / s.w);
-  const state = goTo(s, u, `x${best}`, (x, y) => x === bx && y === by, bx, by, avoid);
-  if (state === 'blocked') {
-    // Unreachable for now: mark it so the scout moves on to the next candidate.
-    explored[best] = 1;
-  }
+  // A scout that starts inside a camp's circle is safe there; let it walk out before avoiding camps.
+  const avoid = nearCamp(Math.floor(u.x), Math.floor(u.y)) ? undefined : nearCamp;
+  if (goTo(s, u, `x${best}`, (x, y) => x === bx && y === by, bx, by, avoid) === 'blocked') skip.push(best);
 }
 
 function stepUnit(s: Game, u: Unit): void {
@@ -116,7 +112,7 @@ function stepUnit(s: Game, u: Unit): void {
     case 'attack':
       if (!attackTarget(s, u, o.target, o.building)) setOrder(u, { kind: 'idle' });
       return;
-    case 'explore': return stepExplore(s, u);
+    case 'explore': return stepExplore(s, u, o.skip);
     case 'gather': return stepGather(s, u, o.tile, o.terrain);
     case 'farm': return stepFarm(s, u, buildingById(s, o.building));
     case 'build': return stepBuild(s, u, buildingById(s, o.building));

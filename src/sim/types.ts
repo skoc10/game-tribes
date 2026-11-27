@@ -29,7 +29,8 @@ export type Order =
   | { kind: 'build'; building: number }
   | { kind: 'attack'; target: number; building: boolean }
   | { kind: 'attackMove'; x: number; y: number }
-  | { kind: 'explore' };
+  /** skip: tiles found unreachable, so the scout does not keep trying them. */
+  | { kind: 'explore'; skip: number[] };
 
 export interface Unit {
   id: number; owner: number; type: string; x: number; y: number; hp: number;

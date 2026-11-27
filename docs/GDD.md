@@ -151,7 +151,7 @@ Ortak kurallar: Her halkın 1 kahramanı vardır ve maça onunla başlar. Seviye
 
 | Kahraman | Sv. 2 (aktif) | Sv. 4 (pasif aura) | Sv. 6 (aktif) | Sv. 8 (nihai) |
 |---|---|---|---|---|
-| **Komutan Aldera** (Sancaklılar) | *Toplanma Borusu:* çevredeki birimler 10 sn +%20 hızlı | *Sancak Gölgesi:* çevreye +%10 saldırı hızı | *Kalkan Duvarı:* 8 sn boyunca alınan hasar −%40 | *Büyük Hücum:* süvariler 6 sn durdurulamaz, ilk vuruş ×1.5 |
+| **Komutan Aldera** (Sancaklılar) | *Toplanma Borusu:* çevredeki birimler 10 sn +%20 hızlı | *Sancak Gölgesi:* çevreye +%10 hareket hızı (Sancak Süvarisi'nin saldırı hızı aurasıyla birlikte çalışır) | *Kalkan Duvarı:* 8 sn boyunca alınan hasar −%40 | *Büyük Hücum:* süvariler 6 sn durdurulamaz, ilk vuruş ×1.5 |
 | **Korucu Sılven** (Yaprakdiller) | *Keskin Nişan:* tek hedefe yüksek hasar | *Orman Fısıltısı:* çevreye görüş +2, ormanda gizlenme | *Sarmaşık Tuzağı:* alanda yavaşlatma | *Ok Yağmuru:* geniş alan hasarı |
 | **Usta Durgan** (Taşocaklılar) | *Yer Sarsan:* alanda 2 sn sersemletme | *Taş Deri:* çevreye zırh +1 | *Ocak Ateşi:* yakındaki binalar hızla onarılır, kuleler hızlı atar | *Dağın Öfkesi:* binalara ve kuşatmaya büyük hasar |
 | **Boy Beyi Karhan** (Külboyları) | *Savaş Narası:* düşman hasarı 6 sn −%15 | *Sürü Ruhu:* yakındaki her 5 dost birim için +%2 hasar (en çok +%10) | *Akın:* kısa, hızlı hücum | *Kül Fırtınası:* alanda düşman görüşü kısılır ve yavaşlar |
@@ -228,7 +228,7 @@ Nüfus: Ana Merkez 10, her Ev +5 nüfus sağlar; üst sınır 60. Köylü ve piy
 |---|---|---|---|
 | **I. Kuruluş** | Ana Merkez, Ev, Oduncu Kampı, Değirmen, Çiftlik, Maden Ocağı, Kışla, Gözcü Direği | Köylü, İzci, Piyade, Kahraman | Köylü taşıma kapasitesi I |
 | **II. Kale** | Okçuluk Alanı, Ahır, Demirci, Pazar, Gözcü Kulesi, Ahşap Sur, **halka özel bina** | Okçu, Süvari | *Ekonomi:* El Arabası (taşıma +%25), Keskin Balta (odun +%15), Saban (çiftlik +%15), Kazma (maden +%15). *Askeri:* Silah I, Zırh I |
-| **III. Efsane** | Kuşatma Atölyesi, Büyü Kulesi, Kale, Taş Sur | Kuşatma (koçbaşı, mancınık), Büyücü, **halka özel birim** | Silah II, Zırh II, Uzun Yay (okçu menzili +1), Nal (süvari hızı +%10), Taş Duvarcılık (bina canı +%15), Kervan Yolları (ticaret geliri +%20), Kadim Bilgi (kahraman deneyimi +%25) |
+| **III. Efsane** | Kuşatma Atölyesi, Büyü Kulesi, Kale, Taş Sur | Kuşatma (mancınık), Büyücü, **halka özel birim** | Silah II, Zırh II, Uzun Yay (okçu menzili +1), Nal (süvari hızı +%10), Taş Duvarcılık (bina canı +%15), Kervan Yolları (ticaret geliri +%20), Kadim Bilgi (kahraman deneyimi +%25) |
 | **IV. İmparatorluk** | **Büyük Anıt** | Seçkin özel birim (yükseltme) | Silah III, Zırh III, Büyü Odağı (büyücü alanı genişler), Usta Mimarlık (inşa hızı +%25) |
 
 **Büyük Anıt:** 800 odun, 1000 taş, 600 kristal. 8 köylüyle yaklaşık 2 dakikada biter. Canı tüm halklarda aynıdır. Oyuncu başına aynı anda 1 adet.
@@ -541,7 +541,7 @@ Zorluk, yapay zekâya haksız avantaj vererek değil; karar kalitesi, tempo ve y
 | Sistemler | Savaş sisi, barış sayacı, savaş üçgeni göstergeleri, duraklatma ve hız |
 | Tarafsız kamplar | Yeniden doğan, en fazla 3 kademe; izciye saldırmaz |
 | Diplomasi | Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve onay penceresi, "Neden?" günlüğü |
-| Yapay zekâ | 2 kişilik: Tüccar ve Yayılmacı |
+| Yapay zekâ | 2 kişilik: Tüccar ve Yayılmacı. Tüccar MVP'de Ticaret Anlaşması yerine Saldırmazlık Paktı teklif eder ve Anıt yerine Kadim Harabe'yi hedefler. |
 | Hedef | Kadim Harabe (tek kalıntı) |
 | Zafer | Fetih ya da Kadim Harabe'yi 3 dk tutmak |
 | Kolaylıklar | Boşta köylü ikonu, otomatik kaynak geçişi, otomatik keşif |
@@ -614,4 +614,5 @@ En az 8 çocukla (10–15 yaş) yapılacak oyun testinde:
 4. **Kahramanın barıştaki seviye sınırı:** 3. seviye sınırı Külboyları'nın kamp avını yeterince ödüllendiriyor mu?
 5. **Dokunmatik:** Tablet desteği MVP sonrasında hedeflenecek mi? Arayüz buna göre mi tasarlanmalı?
 6. **Seslendirme:** Danışman ve "Neden?" günlükleri sesli okunmalı mı (10–11 yaş için okuma yükünü azaltır)?
-7. **Hikâye modu:** Beş görevlik öğreticinin ötesinde halk başına kısa bir senaryo dizisi olacak mı?
+7. **Sancaklılar'ın kristal zayıflığı:** Kristalin çoğu madenden değil ticaretten geldiği ve Lonca Hanı ticaret gelirini artırdığı için "kristal toplama −%10" pratikte −5 puan kadar hissedilmeyebilir. Simülasyonda Sancaklılar güçlü çıkarsa bu zayıflık −%20'ye çıkarılır ya da daha hissedilir bir alana (örneğin bina maliyeti) kaydırılır.
+8. **Hikâye modu:** Beş görevlik öğreticinin ötesinde halk başına kısa bir senaryo dizisi olacak mı?

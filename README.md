@@ -16,3 +16,4 @@ Tasarım aşamasında; henüz kod yok.
 ## Dokümanlar
 
 - [Oyun Tasarım Dokümanı (GDD)](docs/GDD.md)
+- [Kâğıt Prototip Kiti](docs/kagit-prototip.md)

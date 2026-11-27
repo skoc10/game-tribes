@@ -102,7 +102,7 @@ export class Hud {
       : `<span class="stat">⚔ Barış bitti</span>`;
     let relic = '🏛 Harabe: uykuda';
     if (!inPeace(s)) {
-      if (r.owner >= 0) relic = `🏛 Harabe: <b>${s.players[r.owner].name}</b> — zafere ${clock(relicCountdown(s))}`;
+      if (r.owner >= 0) relic = `🏛 Harabe: <b>${s.players[r.owner].name}</b> — zafere ${clock(relicCountdown(s))}${r.counting ? '' : ' ⏸ (başında asker yok ya da düşman var)'}`;
       else if (r.captor >= 0) relic = `🏛 Harabe: ${s.players[r.captor].name} ele geçiriyor %${Math.floor((r.progress / CFG.relic.captureTime) * 100)}`;
       else relic = '🏛 Harabe: sahipsiz';
     }

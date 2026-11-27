@@ -120,13 +120,18 @@ export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
   const reach = range > 0 ? range + 0.5 : 1.5;
   if ((t.x - u.x) ** 2 + (t.y - u.y) ** 2 <= reach * reach) {
     u.path = null; u.pathKey = '';
+    // Already brought down this tick by someone else: nothing left to hit.
+    if (t.hp <= 0) return true;
     if (u.cooldown <= 0) {
       u.cooldown = CFG.combat.cooldown;
       t.hp -= afterArmor(s, t, damageOf(s, u) * multiplier(clsOf(u), clsOf(t)));
-      if (t.hp <= 0) killUnit(s, t, u.owner);
+      // Deaths are settled after every unit has acted, so the order units are processed in gives no first strike.
+      if (t.hp <= 0) s.fallen.push({ unit: t, killer: u.owner });
       // A fighter with nothing better to do turns on whoever is hitting it, even from beyond its own aggro range.
       // Beasts do the same, so a camp cannot be shot down from outside its aggro circle.
       else if (!t.target && isFighter(t) && (t.owner < 0 || t.order.kind === 'idle' || t.order.kind === 'attackMove')) t.target = u.id;
+      // A camp fights as a pack: hitting one creature rouses the rest.
+      if (t.owner < 0 && t.camp >= 0) for (const o of s.units) if (o.owner < 0 && o.camp === t.camp && !o.target) o.target = u.id;
     }
     return true;
   }
@@ -159,11 +164,15 @@ export function engageBuilding(s: Game, u: Unit, b: Building): boolean {
 }
 
 function nearestHostile(s: Game, u: Unit, radius: number): Unit | undefined {
-  let best: Unit | undefined, bestD = radius * radius;
+  // Among enemies at the same distance (armies often stand on one spot) pick by a hash of both
+  // ids, not by list order, so the choice favours no seat and spreads fire instead of piling it.
+  let best: Unit | undefined, bestD = radius * radius, bestH = 0;
   for (const o of s.units) {
-    if (!hostile(s, u.owner, o.owner)) continue;
+    if (o.hp <= 0 || !hostile(s, u.owner, o.owner)) continue;
     const d = (o.x - u.x) ** 2 + (o.y - u.y) ** 2;
-    if (d < bestD) { best = o; bestD = d; }
+    if (d > bestD + 1e-9) continue;
+    const h = Math.imul(o.id * 73 + u.id, 2654435761) >>> 0;
+    if (d < bestD - 1e-9 || !best || h > bestH) { best = o; bestD = d; bestH = h; }
   }
   return best;
 }

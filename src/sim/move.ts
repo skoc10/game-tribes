@@ -24,7 +24,7 @@ export type TileTest = (x: number, y: number) => boolean;
 /** Walks a unit towards any tile satisfying isGoal, (re)computing its path when the goal changes. */
 export function goTo(s: Game, u: Unit, key: string, isGoal: TileTest, hx: number, hy: number, avoid?: TileTest): Travel {
   if (u.pathKey !== key || !u.path) {
-    const path = findPath(s, Math.floor(u.x), Math.floor(u.y), isGoal, hx, hy, avoid);
+    const path = findPath(s, Math.floor(u.x), Math.floor(u.y), isGoal, hx, hy, avoid, u.id * 31 + s.tick);
     if (!path) { u.path = null; u.pathKey = ''; return 'blocked'; }
     u.path = path; u.pathIdx = 0; u.pathKey = key;
   }

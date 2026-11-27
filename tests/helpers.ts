@@ -1,5 +1,5 @@
 import { CFG } from '../src/sim/data';
-import { addUnit, createGame } from '../src/sim/state';
+import { addUnit, canPlace, createGame } from '../src/sim/state';
 import { step } from '../src/sim/step';
 import type { Game, RaceId, Unit } from '../src/sim/types';
 
@@ -15,6 +15,14 @@ export const unitsOf = (s: Game, player: number, type: string): Unit[] =>
   s.units.filter((u) => u.owner === player && u.type === type);
 
 export const tcOf = (s: Game, player: number) => s.buildings.find((b) => b.owner === player && b.type === 'towncenter')!;
+
+/** A free site for a building near a player's base, found by scanning outwards. */
+export const freeSite = (s: Game, player: number, type: string): { tx: number; ty: number } => {
+  const b = s.bases[player];
+  for (let r = 4; r < 14; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++)
+    if (canPlace(s, type, b.x + dx, b.y + dy)) return { tx: b.x + dx, ty: b.y + dy };
+  throw new Error('no free site');
+};
 
 /** Spawns n units of a type in a row starting at (x, y). */
 export const squad = (s: Game, player: number, type: string, n: number, x: number, y: number): Unit[] =>

@@ -1,6 +1,6 @@
 import { stepAI } from './ai';
 import { nearLiveCamp, stepCamps } from './camps';
-import { attackTarget, autoFight, isFighter, maxHp, stepBeast } from './combat';
+import { attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast } from './combat';
 import { issue, setOrder } from './commands';
 import { BUILDINGS, CFG, DT, RACES } from './data';
 import { updateFog } from './fog';
@@ -165,8 +165,11 @@ export function step(s: Game): void {
   s.time = s.tick * DT;
   stepAI(s);
   for (const b of s.buildings.slice()) stepBuilding(s, b);
-  // A unit killed earlier in this tick must not act.
-  for (const u of s.units.slice()) if (u.hp > 0) stepUnit(s, u);
+  // Everyone alive at the start of the tick acts; those brought down are removed afterwards, so
+  // blows landed in the same tick are simultaneous and no seat strikes first.
+  for (const u of s.units.slice()) stepUnit(s, u);
+  for (const f of s.fallen) if (s.units.includes(f.unit)) killUnit(s, f.unit, f.killer);
+  s.fallen.length = 0;
   stepCamps(s);
   stepHeroes(s);
   stepRules(s);

@@ -14,9 +14,15 @@ export function spawnCamp(s: Game, index: number): void {
   const camp = s.camps[index];
   const count = CFG.camp.count[camp.tier - 1];
   // Use the free tiles closest to the camp centre; never spawn inside something.
+  // Offsets are flipped to face the map centre, so a camp and its mirror image place their
+  // creatures as mirror images too (a fixed order would shift every camp towards one corner).
+  const fx = camp.x <= s.center.x ? 1 : -1, fy = camp.y <= s.center.y ? 1 : -1;
   const free: number[][] = [];
   for (let r = 0; r <= 4 && free.length < count; r++)
-    for (const [dx, dy] of r === 0 ? [[0, 0]] : RING(r)) if (walkable(s, Math.floor(camp.x + dx), Math.floor(camp.y + dy))) free.push([dx, dy]);
+    for (const [ox, oy] of r === 0 ? [[0, 0]] : RING(r)) {
+      const dx = ox * fx, dy = oy * fy;
+      if (walkable(s, Math.floor(camp.x + dx), Math.floor(camp.y + dy))) free.push([dx, dy]);
+    }
   if (free.length === 0) { camp.respawnAt = s.time + 10; return; }
   for (let i = 0; i < count; i++) {
     const [dx, dy] = free[i % free.length];

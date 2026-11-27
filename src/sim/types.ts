@@ -105,6 +105,8 @@ export interface Game {
   winKind: '' | 'conquest' | 'relic';
   diplo: Diplo;
   ai: AIState[];
+  /** Units brought to zero this tick; they are removed once every unit has acted. */
+  fallen: { unit: Unit; killer: number }[];
 }
 
 export interface Pact {
@@ -150,10 +152,16 @@ export interface Relic {
   /** Player currently capturing, -1 if nobody. */
   captor: number;
   progress: number;
-  /** Game time at which the current owner took it. */
-  heldSince: number;
+  /** Seconds the current owner's hold has counted towards victory. */
+  held: number;
+  /** Whether the hold timer is advancing this tick (the owner is on guard and unchallenged). */
+  counting: boolean;
 }
 
 export type Personality = '' | 'trader' | 'expander';
 export interface PlayerSetup { race: RaceId; isAI: boolean; name?: string; personality?: Personality }
-export interface GameOptions { seed: number; players: PlayerSetup[]; peaceSeconds?: number }
+export interface GameOptions {
+  seed: number; players: PlayerSetup[]; peaceSeconds?: number;
+  /** Rotates which start position each seat gets (0 = seat 0 at the top). */
+  seatOffset?: number;
+}

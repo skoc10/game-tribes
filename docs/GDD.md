@@ -301,7 +301,7 @@ Dördüncü köşe — **Kuşatma ve Büyü:** Binalara ve kümelenmiş piyade/o
 
 ### 4.4 Kadim Kalıntılar
 
-Haritada 5 kalıntı vardır: komşu üsler arasındaki dört ara bölgede birer tane ve merkezde **Kadim Harabe**. Bir kalıntı, yanında 20 saniye boyunca rakipsiz birim tutularak ele geçirilir.
+Haritada 5 kalıntı vardır: komşu üsler arasındaki dört ara bölgede birer tane ve merkezde **Kadim Harabe**. Bir kalıntı, yanında 20 saniye boyunca rakipsiz birim tutularak ele geçirilir. Kalıntı zaferinin sayacı yalnızca sahibin askeri kalıntının başındayken ve orada düşman asker yokken işler; bu kural MVP'deki simülasyonlardan çıktı (başında durmak gerekmediğinde maçların neredeyse tamamı bu yolla bitiyordu; bkz. [denge raporu](denge-raporu.md)).
 
 | Kalıntı | Sürekli bonus |
 |---|---|
@@ -545,14 +545,14 @@ Zorluk, yapay zekâya haksız avantaj vererek değil; karar kalitesi, tempo ve y
 | Diplomasi | İlişki (başlangıç değerleri ve hediye dahil), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve onay penceresi, "Neden?" günlüğü |
 | Yapay zekâ | 2 kişilik: Tüccar ve Yayılmacı. Tüccar MVP'de Ticaret Anlaşması yerine Saldırmazlık Paktı teklif eder ve Anıt yerine Kadim Harabe'yi hedefler. |
 | Hedef | Kadim Harabe (tek kalıntı) |
-| Zafer | Fetih ya da Kadim Harabe'yi 3 dk tutmak |
+| Zafer | Fetih ya da Kadim Harabe'yi alıp başında 3 dk nöbet tutmak (sayaç yalnızca sahibin askeri Harabe'deyken ve orada düşman asker yokken işler) |
 | Kolaylıklar | Boşta köylü ikonu, otomatik kaynak geçişi, otomatik keşif |
 | Zorluk | Yalnızca Kâşif |
 
 **Halk hissi — zorunlu kapsam.** Özel birim ve binalar MVP'de yoktur; bu yüzden iki halkın farkı yüzdelik bonusla bırakılmaz. Her birine ekranda görülen bir imza mekaniği verilir:
 
 - **Külboyları — Ganimet Yağması.** Kamp temizlenince kaynaklar görsel ve sesli bir patlamayla anında düşer. Oyuncu çiftlik yerine avlanarak büyür.
-- **Sancaklılar — Sancak Kervanı.** Yürürlükteki her pakt için iki üs arasında gidip gelen, haritada görünen bir kervan pakt başına **18 kristal/dk** getirir (denge ayarından sonra MVP'de 3; kamp ganimeti de MVP'de tablonun 0,4 katıdır; bkz. [denge raporu](denge-raporu.md)); MVP'de bunun için bina gerekmez. Oyuncu anlaşarak büyür; pakt bozulursa kervan durur. Sancak Kervanı tam oyunda Ticaret Anlaşması'yla, MVP'de ise (Ticaret Anlaşması kapsam dışı olduğu için) Saldırmazlık Paktı'yla çalışır.
+- **Sancaklılar — Sancak Kervanı.** Yürürlükteki her pakt için iki üs arasında gidip gelen, haritada görünen bir kervan pakt başına **18 kristal/dk** getirir (denge ayarından sonra MVP'de 12; bkz. [denge raporu](denge-raporu.md)); MVP'de bunun için bina gerekmez. Oyuncu anlaşarak büyür; pakt bozulursa kervan durur. Sancak Kervanı tam oyunda Ticaret Anlaşması'yla, MVP'de ise (Ticaret Anlaşması kapsam dışı olduğu için) Saldırmazlık Paktı'yla çalışır.
 
 **Kapsam dışı (sonraya):** Çağ III–IV, taş, kuşatma ve büyücü, sur ve kuleler, harita olayları, Büyük Anıt, Ticaret Anlaşması ve Askeri İttifak, kahraman yetenekleri, özel birim ve özel binalar, Yaprakdiller ve Taşocaklılar, diğer zorluklar, öğretici görevler, tam Strateji Karnesi.
 

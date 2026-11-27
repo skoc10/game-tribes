@@ -151,12 +151,14 @@ export class Hud {
   /** Full-screen result once the match is decided. */
   renderResult(v: HudView): void {
     const s = v.s;
-    if (s.winner < 0 || document.getElementById('result')) return;
+    const out = !s.players[v.me].alive;
+    if ((s.winner < 0 && !out) || document.getElementById('result')) return;
     const won = s.winner === v.me;
-    const how = s.winKind === 'relic' ? 'Kadim Harabe\'yi 3 dakika elinde tuttu' : 'ayakta kalan son halk oldu';
+    const how = s.winKind === 'relic' ? `Kadim Harabe'yi ${CFG.relic.holdToWin / 60} dakika elinde tuttu` : 'ayakta kalan son halk oldu';
+    const line = s.winner >= 0 ? `<b>${s.players[s.winner].name}</b> ${how}.` : 'Ana Merkez\'in yıkıldı ve zamanında yenisini kuramadın.';
     const el = document.createElement('div');
     el.id = 'result';
-    el.innerHTML = `<h1>${won ? '🏆 Zafer!' : 'Maç bitti'}</h1><div><b>${s.players[s.winner].name}</b> ${how}.</div><div>Süre: ${clock(s.time)}</div><button data-act="restart">Yeniden oyna</button>`;
+    el.innerHTML = `<h1>${won ? '🏆 Zafer!' : out ? 'Elendin' : 'Maç bitti'}</h1><div>${line}</div><div>Süre: ${clock(s.time)}</div><button data-act="restart">Yeniden oyna</button>`;
     document.body.appendChild(el);
   }
 }

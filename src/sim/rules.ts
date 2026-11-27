@@ -9,9 +9,11 @@ const everyone = (s: Game, kind: string, text: string): void => {
 };
 
 function stepPeace(s: Game): void {
-  const warnAt = s.peaceEnd - CFG.peaceWarning;
-  if (warnAt > 0 && s.time >= warnAt && s.time - DT < warnAt) everyone(s, 'peace', `Barış ${CFG.peaceWarning} saniye sonra bitiyor!`);
-  if (s.time >= s.peaceEnd && s.time - DT < s.peaceEnd) everyone(s, 'peace', 'Boru çaldı: barış bitti. Kadim Harabe uyandı!');
+  // Compared in whole ticks so each announcement fires exactly once.
+  const endTick = Math.ceil(s.peaceEnd * CFG.tickRate - 1e-9);
+  const warnTick = endTick - CFG.peaceWarning * CFG.tickRate;
+  if (warnTick > 0 && s.tick === warnTick) everyone(s, 'peace', `Barış ${CFG.peaceWarning} saniye sonra bitiyor!`);
+  if (endTick > 0 && s.tick === endTick) everyone(s, 'peace', 'Boru çaldı: barış bitti. Kadim Harabe uyandı!');
 }
 
 function stepResearch(s: Game): void {
@@ -67,7 +69,11 @@ function stepElimination(s: Game): void {
       p.tcLostAt = s.time;
       log(s, p.id, 'danger', `Ana Merkez'in yıkıldı! ${CFG.eliminationGrace} saniye içinde yenisini kurmazsan elenirsin.`);
     }
-    if (s.time - p.tcLostAt < CFG.eliminationGrace) continue;
+    // A replacement under construction buys time, but only up to twice the grace period.
+    const waited = s.time - p.tcLostAt;
+    if (waited < CFG.eliminationGrace || (has(false) && waited < CFG.eliminationGrace * 2)) continue;
+    // The last player standing is never removed: they win instead.
+    if (s.players.filter((o) => o.alive).length <= 1) continue;
     p.alive = false;
     s.units = s.units.filter((u) => u.owner !== p.id);
     for (const b of s.buildings.filter((o) => o.owner === p.id)) removeBuilding(s, b);
@@ -82,8 +88,9 @@ function stepElimination(s: Game): void {
 export function stepRules(s: Game): void {
   stepPeace(s);
   stepResearch(s);
-  stepRelic(s);
+  // Elimination first, so a player removed this tick cannot also win with the relic.
   stepElimination(s);
+  if (s.winner < 0) stepRelic(s);
 }
 
 /** Seconds until the relic holder wins, or -1 if nobody holds it. */

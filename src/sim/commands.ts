@@ -146,6 +146,7 @@ export function issue(s: Game, player: number, cmd: Command): Result {
       const b = buildingById(s, cmd.building);
       if (!b || b.owner !== player || b.type !== 'towncenter' || b.progress < 1) return fail('Ana Merkez seç');
       if (p.age >= 2) return fail('Zaten Kale Çağı\'ndasın');
+      if (s.buildings.some((o) => o.owner === player && o.research?.id === 'age2')) return fail('Araştırma sürüyor');
       if (b.research) return fail('Araştırma sürüyor');
       if (agePrereqCount(s, player) < CFG.age2.prereq) return fail(`Önce ${CFG.age2.prereq} farklı bina kur (Ev, Çiftlik, Kışla)`);
       if (!canAfford(p, CFG.age2.cost)) return fail('Yeterli kaynak yok');

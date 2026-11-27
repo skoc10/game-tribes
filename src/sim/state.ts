@@ -44,6 +44,9 @@ export function canPlace(s: Game, type: string, tx: number, ty: number): boolean
   const size = BUILDINGS[type].size;
   for (let y = ty; y < ty + size; y++)
     for (let x = tx; x < tx + size; x++) if (!walkable(s, x, y)) return false;
+  // The relic must stay reachable: nothing may be built on or right around it.
+  const keep = CFG.relic.radius + 1;
+  if (s.relic.x > tx - keep && s.relic.x < tx + size + keep && s.relic.y > ty - keep && s.relic.y < ty + size + keep) return false;
   // Camp sites stay clear so creatures always have somewhere to return to.
   if (s.camps.some((c) => c.x > tx - 3 && c.x < tx + size + 3 && c.y > ty - 3 && c.y < ty + size + 3)) return false;
   // A unit standing inside the footprint would be walled in.

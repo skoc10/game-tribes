@@ -1,4 +1,4 @@
-import { BUILDINGS, CFG, KINDS, RACES, UNITS, unitCost } from './data';
+import { BUILDINGS, CFG, KINDS, RACES, UNITS, techCost, unitCost } from './data';
 import { goTo, type Travel } from './move';
 import { hostile, inPeace } from './relations';
 import { buildingById, log, removeBuilding, unitById } from './state';
@@ -41,6 +41,8 @@ function grantXp(s: Game, player: number, x: number, y: number, xp: number): voi
   if (!hero || (hero.x - x) ** 2 + (hero.y - y) ** 2 > CFG.hero.xpRadius ** 2) return;
   const p = s.players[player];
   p.heroXp += xp * (s.relic.owner === player ? CFG.relic.xpBonus : 1);
+  // At the cap, experience does not bank up for later.
+  if (p.heroLevel >= heroLevelCap(s)) p.heroXp = Math.min(p.heroXp, xpForLevel(p.heroLevel) - 1);
   while (p.heroLevel < heroLevelCap(s) && p.heroXp >= xpForLevel(p.heroLevel)) {
     p.heroXp -= xpForLevel(p.heroLevel);
     p.heroLevel++;
@@ -77,6 +79,12 @@ export function killUnit(s: Game, victim: Unit, killer: number): void {
 
 export function destroyBuilding(s: Game, b: Building, killer: number): void {
   const size = BUILDINGS[b.type].size;
+  // Research in progress is lost with the building, but its cost comes back.
+  if (b.research) {
+    const owner = s.players[b.owner];
+    const cost: Cost = b.research.id === 'age2' ? CFG.age2.cost : techCost(owner, b.research.id);
+    for (const k of KINDS) owner.res[k] += cost[k] ?? 0;
+  }
   removeBuilding(s, b);
   log(s, b.owner, 'lost', `${BUILDINGS[b.type].name} yıkıldı.`, b.tx + size / 2, b.ty + size / 2);
   if (killer >= 0 && RACES[s.players[killer].race].loot)

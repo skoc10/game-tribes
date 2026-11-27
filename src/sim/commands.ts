@@ -1,5 +1,5 @@
-import { BUILDINGS, CFG, UNITS, canAfford, pay, trainTime, unitCost } from './data';
-import { addBuilding, buildingById, canPlace, isResource, nearestNode, popCap, popUsed, unitById } from './state';
+import { BUILDINGS, CFG, KINDS, UNITS, canAfford, pay, trainTime, unitCost } from './data';
+import { addBuilding, buildingById, canPlace, isResource, nearestNode, popCap, popUsed, removeBuilding, unitById } from './state';
 import type { Game, Order, Unit } from './types';
 
 export type Command =
@@ -10,7 +10,8 @@ export type Command =
   | { type: 'assist'; units: number[]; building: number }
   | { type: 'train'; building: number; unit: string }
   | { type: 'autoVillager'; building: number; on: boolean }
-  | { type: 'rally'; building: number; tile: number };
+  | { type: 'rally'; building: number; tile: number }
+  | { type: 'cancel'; building: number };
 
 export interface Result { ok: boolean; reason?: string }
 const OK: Result = { ok: true };
@@ -97,7 +98,16 @@ export function issue(s: Game, player: number, cmd: Command): Result {
     case 'rally': {
       const b = buildingById(s, cmd.building);
       if (!b || b.owner !== player) return fail('Bina yok');
+      if (!Number.isInteger(cmd.tile) || cmd.tile < 0 || cmd.tile >= s.w * s.h || !isResource(s.terrain[cmd.tile])) return fail('Toplanma noktası bir kaynak olmalı');
       b.rallyTile = cmd.tile;
+      return OK;
+    }
+    case 'cancel': {
+      const b = buildingById(s, cmd.building);
+      if (!b || b.owner !== player) return fail('Bina yok');
+      if (b.progress >= 1) return fail('Biten bina iptal edilemez');
+      for (const k of KINDS) p.res[k] += BUILDINGS[b.type].cost[k] ?? 0;
+      removeBuilding(s, b);
       return OK;
     }
   }

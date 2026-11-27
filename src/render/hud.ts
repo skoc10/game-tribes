@@ -29,7 +29,8 @@ export class Hud {
   private toastTimer = 0;
 
   constructor(onAction: (action: string, arg: string) => void) {
-    document.body.addEventListener('click', (e) => {
+    // pointerdown, not click: a region may be re-rendered between press and release, which would swallow a click.
+    document.body.addEventListener('pointerdown', (e) => {
       const el = (e.target as HTMLElement).closest('[data-act]') as HTMLElement | null;
       if (!el) return;
       const [action, arg = ''] = el.dataset.act!.split(':');
@@ -83,7 +84,7 @@ export class Hud {
       const def = BUILDINGS[b.type];
       const parts = [`<span><b>${def.name}</b><br>❤ ${Math.ceil(b.hp)}/${b.maxHp}</span>`];
       if (b.owner !== me) return parts.join('');
-      if (b.progress < 1) parts.push(`<span>İnşa ediliyor: %${Math.floor(b.progress * 100)}</span>`);
+      if (b.progress < 1) parts.push(`<span>İnşa ediliyor: %${Math.floor(b.progress * 100)}</span><button data-act="cancel">İptal<small>kaynak geri gelir</small></button>`);
       else {
         for (const u of def.trains)
           parts.push(`<button data-act="train:${u}">${UNITS[u].name}<small>${costText(unitCost(p, u))}</small></button>`);

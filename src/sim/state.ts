@@ -38,10 +38,12 @@ function blob(s: Game, cx: number, cy: number, r: number, terrain: number, amoun
 
 /** True if every tile of a size×size footprint at (tx, ty) is free. */
 export function canPlace(s: Game, type: string, tx: number, ty: number): boolean {
+  if (!Number.isInteger(tx) || !Number.isInteger(ty)) return false;
   const size = BUILDINGS[type].size;
   for (let y = ty; y < ty + size; y++)
     for (let x = tx; x < tx + size; x++) if (!walkable(s, x, y)) return false;
-  return true;
+  // A unit standing inside the footprint would be walled in.
+  return !s.units.some((u) => u.x >= tx && u.x < tx + size && u.y >= ty && u.y < ty + size);
 }
 
 export function addBuilding(s: Game, owner: number, type: string, tx: number, ty: number, complete: boolean): Building {

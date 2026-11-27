@@ -56,6 +56,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
+    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.onUp(p));
   }
 
   protected createHud(): Hud {
@@ -76,6 +77,7 @@ export class GameScene extends Phaser.Scene {
       case 'idle': this.selectIdle(); break;
       case 'train': this.cmd({ type: 'train', building: this.selBuilding, unit: arg }); break;
       case 'build': this.placing = arg; break;
+      case 'cancel': this.cmd({ type: 'cancel', building: this.selBuilding }); break;
       case 'auto': {
         const b = buildingById(this.s, this.selBuilding);
         if (b) this.cmd({ type: 'autoVillager', building: b.id, on: !b.autoVillager });
@@ -158,8 +160,7 @@ export class GameScene extends Phaser.Scene {
     if (x < 0 || y < 0 || x >= s.w || y >= s.h) return;
     const tile = Math.floor(y) * s.w + Math.floor(x);
     if (this.selBuilding && isResource(s.terrain[tile])) {
-      this.cmd({ type: 'rally', building: this.selBuilding, tile });
-      this.hud.toast('Toplanma noktası ayarlandı');
+      if (this.cmd({ type: 'rally', building: this.selBuilding, tile })) this.hud.toast('Toplanma noktası ayarlandı');
       return;
     }
     if (this.selUnits.length === 0) return;

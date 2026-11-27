@@ -100,7 +100,8 @@ describe('neutral camps', () => {
         run(s, CFG.camp.respawn + 1);
       }
       const gained = s.players[player].res.food - before.food;
-      if (expectLoot) expect(gained).toBe(60 + 100 + 150 + 150);
+      const loot = CFG.camp.loot;
+      if (expectLoot) expect(gained).toBe(loot[0].food + loot[1].food + loot[2].food * 2);
       else expect(gained).toBe(0);
     }
   });

@@ -66,19 +66,19 @@
     ],
     "loot": [
       {
-        "food": 60,
-        "wood": 40,
+        "food": 24,
+        "wood": 16,
         "crystal": 0
       },
       {
-        "food": 100,
-        "wood": 60,
-        "crystal": 20
+        "food": 40,
+        "wood": 24,
+        "crystal": 8
       },
       {
-        "food": 150,
-        "wood": 80,
-        "crystal": 40
+        "food": 60,
+        "wood": 32,
+        "crystal": 16
       }
     ],
     "exploreAvoid": 6
@@ -165,7 +165,7 @@
     "giftAmount": 100,
     "relicRelation": 10,
     "offerSeconds": 45,
-    "caravanPerMinute": 18
+    "caravanPerMinute": 3
   },
   "ai": {
     "thinkSeconds": 2,

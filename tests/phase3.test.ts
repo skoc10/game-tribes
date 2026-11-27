@@ -37,7 +37,7 @@ describe('peace period', () => {
     issue(s, 0, { type: 'attackMove', units: army.map((u) => u.id), x: camp.x, y: camp.y });
     run(s, 60);
     expect(camp.alive).toBe(0);
-    expect(s.players[0].res.food).toBe(CFG.startResources.food + 60);
+    expect(s.players[0].res.food).toBe(CFG.startResources.food + CFG.camp.loot[0].food);
     expect(s.players[0].heroLevel).toBe(CFG.peaceHeroCap);
   });
 });

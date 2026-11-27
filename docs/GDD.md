@@ -552,7 +552,7 @@ Zorluk, yapay zekâya haksız avantaj vererek değil; karar kalitesi, tempo ve y
 **Halk hissi — zorunlu kapsam.** Özel birim ve binalar MVP'de yoktur; bu yüzden iki halkın farkı yüzdelik bonusla bırakılmaz. Her birine ekranda görülen bir imza mekaniği verilir:
 
 - **Külboyları — Ganimet Yağması.** Kamp temizlenince kaynaklar görsel ve sesli bir patlamayla anında düşer. Oyuncu çiftlik yerine avlanarak büyür.
-- **Sancaklılar — Sancak Kervanı.** Yürürlükteki her pakt için iki üs arasında gidip gelen, haritada görünen bir kervan pakt başına **18 kristal/dk** getirir; MVP'de bunun için bina gerekmez. Oyuncu anlaşarak büyür; pakt bozulursa kervan durur. Sancak Kervanı tam oyunda Ticaret Anlaşması'yla, MVP'de ise (Ticaret Anlaşması kapsam dışı olduğu için) Saldırmazlık Paktı'yla çalışır.
+- **Sancaklılar — Sancak Kervanı.** Yürürlükteki her pakt için iki üs arasında gidip gelen, haritada görünen bir kervan pakt başına **18 kristal/dk** getirir (denge ayarından sonra MVP'de 3; kamp ganimeti de MVP'de tablonun 0,4 katıdır; bkz. [denge raporu](denge-raporu.md)); MVP'de bunun için bina gerekmez. Oyuncu anlaşarak büyür; pakt bozulursa kervan durur. Sancak Kervanı tam oyunda Ticaret Anlaşması'yla, MVP'de ise (Ticaret Anlaşması kapsam dışı olduğu için) Saldırmazlık Paktı'yla çalışır.
 
 **Kapsam dışı (sonraya):** Çağ III–IV, taş, kuşatma ve büyücü, sur ve kuleler, harita olayları, Büyük Anıt, Ticaret Anlaşması ve Askeri İttifak, kahraman yetenekleri, özel birim ve özel binalar, Yaprakdiller ve Taşocaklılar, diğer zorluklar, öğretici görevler, tam Strateji Karnesi.
 

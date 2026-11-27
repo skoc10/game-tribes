@@ -2,16 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { issue } from '../src/sim/commands';
 import { CFG, UNITS } from '../src/sim/data';
 import { findPath } from '../src/sim/path';
-import { createGame, idleVillagers, nearestNode, popCap, popUsed } from '../src/sim/state';
-import { step } from '../src/sim/step';
+import { idleVillagers, nearestNode, popCap, popUsed } from '../src/sim/state';
 import { T_BUSH, T_TREE, type Game } from '../src/sim/types';
+import { newGame, run, tcOf as tc } from './helpers';
 
-const newGame = (seed = 1): Game => createGame({
-  seed, players: [{ race: 'sancak', isAI: false }, { race: 'kul', isAI: true }, { race: 'sancak', isAI: true }],
-});
-const run = (s: Game, seconds: number) => { for (let i = 0; i < seconds * CFG.tickRate; i++) step(s); };
 const villagers = (s: Game, p: number) => s.units.filter((u) => u.owner === p && u.type === 'villager');
-const tc = (s: Game, p: number) => s.buildings.find((b) => b.owner === p && b.type === 'towncenter')!;
 
 describe('map', () => {
   it('gives every player the same start', () => {

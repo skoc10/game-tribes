@@ -16,10 +16,11 @@ const DY = [0, 0, 1, -1, 1, -1, 1, -1];
 /**
  * A* over the tile grid. Returns the tiles to step through (excluding the start), an empty
  * array if the start already satisfies the goal, or null if no goal tile is reachable.
- * (hx, hy) is the point the heuristic aims at.
+ * (hx, hy) is the point the heuristic aims at. Tiles matching `avoid` are treated as blocked.
  */
 export function findPath(
   s: Game, sx: number, sy: number, isGoal: (x: number, y: number) => boolean, hx: number, hy: number,
+  avoid?: (x: number, y: number) => boolean,
 ): number[] | null {
   if (isGoal(sx, sy)) return [];
   const { w, h } = s;
@@ -78,7 +79,7 @@ export function findPath(
     }
     for (let d = 0; d < 8; d++) {
       const nx = cx + DX[d], ny = cy + DY[d];
-      if (!walkable(s, nx, ny)) continue;
+      if (!walkable(s, nx, ny) || (avoid && avoid(nx, ny))) continue;
       // No cutting corners around blocked tiles.
       if (d >= 4 && (!walkable(s, cx + DX[d], cy) || !walkable(s, cx, cy + DY[d]))) continue;
       const ni = ny * w + nx;

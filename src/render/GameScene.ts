@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
+import { clsOf, isFighter, maxHp, multiplier } from '../sim/combat';
 import { issue, type Command } from '../sim/commands';
 import { BUILDINGS, DT, UNITS } from '../sim/data';
+import { isExplored, isVisible } from '../sim/fog';
 import { buildingById, canPlace, idleVillagers, isResource, unitById } from '../sim/state';
 import { step } from '../sim/step';
 import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type Unit } from '../sim/types';
@@ -22,6 +24,9 @@ export class GameScene extends Phaser.Scene {
 
   private acc = 0;
   private drawnMap = -1;
+  private drawnFog = -1;
+  private seenEvents = 0;
+  private fogG!: Phaser.GameObjects.Graphics;
   private terrainG!: Phaser.GameObjects.Graphics;
   protected entG!: Phaser.GameObjects.Graphics;
   protected overG!: Phaser.GameObjects.Graphics;
@@ -40,6 +45,7 @@ export class GameScene extends Phaser.Scene {
     const s = this.s;
     this.terrainG = this.add.graphics();
     this.entG = this.add.graphics().setDepth(2);
+    this.fogG = this.add.graphics().setDepth(3.5);
     this.overG = this.add.graphics().setDepth(4);
     const cam = this.cameras.main;
     cam.setBounds(-TILE * 2, -TILE * 4, (s.w + 4) * TILE, (s.h + 8) * TILE);
@@ -51,6 +57,8 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown-SPACE', () => (this.paused = !this.paused));
     this.input.keyboard!.on('keydown-ESC', () => { this.placing = null; this.selUnits = []; this.selBuilding = 0; });
     this.input.keyboard!.on('keydown-PERIOD', () => this.selectIdle());
+    this.input.keyboard!.on('keydown-Q', () => this.selectArmy());
+    this.input.keyboard!.on('keydown-H', () => this.selectHero());
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => {
       cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dy > 0 ? 0.9 : 1.1), 0.4, 2));
     });
@@ -78,6 +86,9 @@ export class GameScene extends Phaser.Scene {
       case 'train': this.cmd({ type: 'train', building: this.selBuilding, unit: arg }); break;
       case 'build': this.placing = arg; break;
       case 'cancel': this.cmd({ type: 'cancel', building: this.selBuilding }); break;
+      case 'explore': this.cmd({ type: 'explore', units: this.selUnits }); break;
+      case 'army': this.selectArmy(); break;
+      case 'hero': this.selectHero(); break;
       case 'auto': {
         const b = buildingById(this.s, this.selBuilding);
         if (b) this.cmd({ type: 'autoVillager', building: b.id, on: !b.autoVillager });
@@ -96,6 +107,19 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.centerOn(u.x * TILE, u.y * TILE);
   }
 
+  private selectArmy(): void {
+    this.selUnits = this.s.units.filter((u) => u.owner === this.me && isFighter(u)).map((u) => u.id);
+    this.selBuilding = 0;
+  }
+
+  private selectHero(): void {
+    const hero = this.s.units.find((u) => u.owner === this.me && u.type === 'hero');
+    if (!hero) return this.hud.toast('Kahramanın şu an yeniden doğmayı bekliyor');
+    this.selUnits = [hero.id];
+    this.selBuilding = 0;
+    this.cameras.main.centerOn(hero.x * TILE, hero.y * TILE);
+  }
+
   private world(p: Phaser.Input.Pointer): Phaser.Math.Vector2 {
     return this.cameras.main.getWorldPoint(p.x, p.y);
   }
@@ -104,7 +128,7 @@ export class GameScene extends Phaser.Scene {
     const w = this.world(p);
     if (p.rightButtonDown()) {
       if (this.placing) { this.placing = null; return; }
-      this.rightClick(w.x / TILE, w.y / TILE);
+      this.rightClick(w.x / TILE, w.y / TILE, p.event.shiftKey);
       return;
     }
     if (this.placing) {
@@ -152,10 +176,12 @@ export class GameScene extends Phaser.Scene {
     this.selBuilding = b && this.canInspect(b) ? b.id : 0;
   }
 
-  protected canInspect(_b: Building): boolean { return true; }
+  protected canInspect(b: Building): boolean {
+    return b.owner === this.me || isExplored(this.s, this.me, b.tx, b.ty);
+  }
 
   /** Context command for the current selection at a world position (in tiles). */
-  protected rightClick(x: number, y: number): void {
+  protected rightClick(x: number, y: number, attackMove = false): void {
     const s = this.s;
     if (x < 0 || y < 0 || x >= s.w || y >= s.h) return;
     const tile = Math.floor(y) * s.w + Math.floor(x);
@@ -164,13 +190,18 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.selUnits.length === 0) return;
+    const enemy = this.unitAt(x, y, (o) => o.owner !== this.me && this.visibleAt(o.x, o.y));
     const b = this.buildingAt(x, y);
-    if (b && b.owner === this.me && (b.progress < 1 || b.type === 'farm')) {
+    if (enemy) {
+      this.cmd({ type: 'attack', units: this.selUnits, target: enemy.id, building: false });
+    } else if (b && b.owner !== this.me && this.canInspect(b)) {
+      this.cmd({ type: 'attack', units: this.selUnits, target: b.id, building: true });
+    } else if (b && b.owner === this.me && (b.progress < 1 || b.type === 'farm')) {
       this.cmd({ type: 'assist', units: this.selUnits, building: b.id });
     } else if (isResource(s.terrain[tile])) {
       this.cmd({ type: 'gather', units: this.selUnits, tile });
     } else {
-      this.cmd({ type: 'move', units: this.selUnits, x, y });
+      this.cmd({ type: attackMove ? 'attackMove' : 'move', units: this.selUnits, x, y });
     }
   }
 
@@ -191,13 +222,33 @@ export class GameScene extends Phaser.Scene {
     this.afterStep();
 
     if (this.drawnMap !== this.s.mapVersion) this.drawTerrain();
+    if (this.drawnFog !== this.s.fogVersion) this.drawFog();
     this.drawEntities();
     this.drawOverlay();
     this.hud.render(this);
   }
 
-  /** Hook for later phases (event log, fog refresh). */
-  protected afterStep(): void {}
+  /** Shows floating text for events that happened where the player can see them. */
+  protected afterStep(): void {
+    const events = this.s.events;
+    for (; this.seenEvents < events.length; this.seenEvents++) {
+      const e = events[this.seenEvents];
+      if (e.player !== this.me) continue;
+      if (e.kind === 'loot' || e.kind === 'level') this.floatText(e.text, e.x ?? 0, e.y ?? 0, e.kind === 'loot' ? '#ffd24a' : '#9be7ff');
+      else this.hud.toast(e.text);
+    }
+  }
+
+  protected floatText(text: string, x: number, y: number, color: string): void {
+    const t = this.add.text(x * TILE, y * TILE, text, { fontSize: '16px', fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setDepth(5);
+    this.tweens.add({ targets: t, y: t.y - 60, alpha: 0, duration: 2200, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+    // A burst of coins makes loot impossible to miss.
+    if (color === '#ffd24a') for (let i = 0; i < 10; i++) {
+      const c = this.add.circle(x * TILE, y * TILE, 4, 0xffd24a).setDepth(5);
+      const a = (i / 10) * Math.PI * 2;
+      this.tweens.add({ targets: c, x: c.x + Math.cos(a) * 50, y: c.y + Math.sin(a) * 50, alpha: 0, duration: 900, onComplete: () => c.destroy() });
+    }
+  }
 
   private drawTerrain(): void {
     const s = this.s, g = this.terrainG;
@@ -212,8 +263,19 @@ export class GameScene extends Phaser.Scene {
     this.drawnMap = s.mapVersion;
   }
 
-  /** Whether the local player may see something at this position. Fog arrives in a later phase. */
-  protected visibleAt(_x: number, _y: number): boolean { return true; }
+  private drawFog(): void {
+    const s = this.s, g = this.fogG, fog = s.fog[this.me];
+    g.clear();
+    for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+      const i = y * s.w + x;
+      if (fog.visible[i]) continue;
+      g.fillStyle(0x05070a, fog.explored[i] ? 0.5 : 1).fillRect(x * TILE, y * TILE, TILE, TILE);
+    }
+    this.drawnFog = s.fogVersion;
+  }
+
+  /** Whether the local player currently sees this position. */
+  protected visibleAt(x: number, y: number): boolean { return isVisible(this.s, this.me, x, y); }
 
   protected drawEntities(): void {
     const g = this.entG, s = this.s;
@@ -221,7 +283,8 @@ export class GameScene extends Phaser.Scene {
     const seen = new Set<number>();
     for (const b of s.buildings) {
       const size = BUILDINGS[b.type].size, px = b.tx * TILE, py = b.ty * TILE, w = size * TILE;
-      if (!this.visibleAt(b.tx + size / 2, b.ty + size / 2)) continue;
+      // Buildings stay on the map once discovered; units need current sight.
+      if (b.owner !== this.me && !isExplored(this.s, this.me, b.tx + size / 2, b.ty + size / 2)) continue;
       seen.add(b.id);
       g.fillStyle(PLAYER_COLORS[b.owner], b.progress < 1 ? 0.4 : 0.95).fillRect(px + 2, py + 2, w - 4, w - 4);
       g.lineStyle(2, b.id === this.selBuilding ? 0xffffff : 0x1b1b1b).strokeRect(px + 2, py + 2, w - 4, w - 4);
@@ -248,8 +311,8 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  protected maxHp(u: Unit): number { return UNITS[u.type].hp; }
-  protected unitColor(u: Unit): number { return PLAYER_COLORS[u.owner] ?? 0x888888; }
+  protected maxHp(u: Unit): number { return maxHp(u); }
+  protected unitColor(u: Unit): number { return PLAYER_COLORS[u.owner] ?? 0x8a5fb0; }
 
   /** One shape per unit class so armies are readable without colour alone. */
   protected drawUnit(u: Unit, x: number, y: number): void {
@@ -258,6 +321,7 @@ export class GameScene extends Phaser.Scene {
     switch (UNITS[u.type].cls) {
       case 'villager': g.fillCircle(x, y, 6).strokeCircle(x, y, 6); break;
       case 'scout': g.fillTriangle(x, y - 8, x + 6, y + 6, x - 6, y + 6).strokeTriangle(x, y - 8, x + 6, y + 6, x - 6, y + 6); break;
+      case 'beast': g.fillTriangle(x - 8, y + 6, x + 8, y + 6, x, y - 9).strokeTriangle(x - 8, y + 6, x + 8, y + 6, x, y - 9); g.fillStyle(0xffffff).fillCircle(x - 3, y, 1.5).fillCircle(x + 3, y, 1.5); break;
       case 'infantry': g.fillRect(x - 7, y - 7, 14, 14).strokeRect(x - 7, y - 7, 14, 14); break;
       case 'archer': g.fillTriangle(x - 8, y - 7, x + 8, y - 7, x, y + 9).strokeTriangle(x - 8, y - 7, x + 8, y - 7, x, y + 9); break;
       case 'cavalry': {
@@ -283,6 +347,20 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(canPlace(this.s, this.placing, tx, ty) ? 0x66ff66 : 0xff5555, 0.45).fillRect(tx * TILE, ty * TILE, size * TILE, size * TILE);
     } else if (this.dragStart && p.isDown) {
       g.lineStyle(1.5, 0xffffff).strokeRect(this.dragStart.x, this.dragStart.y, w.x - this.dragStart.x, w.y - this.dragStart.y);
-    }
+    } else this.drawMatchup(w.x, w.y);
+  }
+
+  /** Hovering an enemy shows whether the selection is strong (green up), even (grey bar) or weak (red down) against it. */
+  private drawMatchup(wx: number, wy: number): void {
+    const target = this.unitAt(wx / TILE, wy / TILE, (o) => o.owner !== this.me && this.visibleAt(o.x, o.y));
+    if (!target) return;
+    const mine = this.selUnits.map((id) => unitById(this.s, id)).filter((u): u is Unit => !!u && isFighter(u));
+    if (mine.length === 0) return;
+    const avg = mine.reduce((n, u) => n + multiplier(clsOf(u), clsOf(target)), 0) / mine.length;
+    const g = this.overG, x = target.x * TILE, y = target.y * TILE - 26;
+    g.lineStyle(2, 0x000000);
+    if (avg > 1.1) g.fillStyle(0x4ade80).fillTriangle(x - 9, y + 7, x + 9, y + 7, x, y - 8).strokeTriangle(x - 9, y + 7, x + 9, y + 7, x, y - 8);
+    else if (avg < 0.9) g.fillStyle(0xf87171).fillTriangle(x - 9, y - 7, x + 9, y - 7, x, y + 8).strokeTriangle(x - 9, y - 7, x + 9, y - 7, x, y + 8);
+    else g.fillStyle(0xbbbbbb).fillRect(x - 9, y - 3, 18, 6).strokeRect(x - 9, y - 3, 18, 6);
   }
 }

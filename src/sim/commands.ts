@@ -1,4 +1,6 @@
+import { isFighter } from './combat';
 import { BUILDINGS, CFG, KINDS, UNITS, canAfford, pay, trainTime, unitCost } from './data';
+import { declareWar, mayAttack } from './relations';
 import { addBuilding, buildingById, canPlace, isResource, nearestNode, popCap, popUsed, removeBuilding, unitById } from './state';
 import type { Game, Order, Unit } from './types';
 
@@ -11,7 +13,10 @@ export type Command =
   | { type: 'train'; building: number; unit: string }
   | { type: 'autoVillager'; building: number; on: boolean }
   | { type: 'rally'; building: number; tile: number }
-  | { type: 'cancel'; building: number };
+  | { type: 'cancel'; building: number }
+  | { type: 'attack'; units: number[]; target: number; building: boolean }
+  | { type: 'attackMove'; units: number[]; x: number; y: number }
+  | { type: 'explore'; units: number[] };
 
 export interface Result { ok: boolean; reason?: string }
 const OK: Result = { ok: true };
@@ -19,6 +24,7 @@ const fail = (reason: string): Result => ({ ok: false, reason });
 
 export function setOrder(u: Unit, order: Order): void {
   u.order = order;
+  u.target = 0;
   u.path = null;
   u.pathKey = '';
 }
@@ -93,6 +99,29 @@ export function issue(s: Game, player: number, cmd: Command): Result {
       const b = buildingById(s, cmd.building);
       if (!b || b.owner !== player || b.type !== 'towncenter') return fail('Ana Merkez seç');
       b.autoVillager = cmd.on;
+      return OK;
+    }
+    case 'attack': {
+      const targetOwner = cmd.building ? buildingById(s, cmd.target)?.owner : unitById(s, cmd.target)?.owner;
+      if (targetOwner === undefined) return fail('Hedef yok');
+      if (targetOwner === player) return fail('Kendi birimine saldıramazsın');
+      const fighters = own(s, player, cmd.units).filter(isFighter);
+      if (fighters.length === 0) return fail('Saldırabilecek birim seçili değil');
+      if (targetOwner >= 0) {
+        const allowed = mayAttack(s, player, targetOwner);
+        if (!allowed.ok) return allowed;
+        declareWar(s, player, targetOwner);
+      }
+      for (const u of fighters) setOrder(u, { kind: 'attack', target: cmd.target, building: cmd.building });
+      return OK;
+    }
+    case 'attackMove': {
+      for (const u of own(s, player, cmd.units))
+        setOrder(u, isFighter(u) ? { kind: 'attackMove', x: cmd.x, y: cmd.y } : { kind: 'move', x: cmd.x, y: cmd.y });
+      return OK;
+    }
+    case 'explore': {
+      for (const u of own(s, player, cmd.units)) if (u.type === 'scout') setOrder(u, { kind: 'explore' });
       return OK;
     }
     case 'rally': {

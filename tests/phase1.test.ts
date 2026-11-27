@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { issue } from '../src/sim/commands';
-import { CFG, UNITS } from '../src/sim/data';
+import { CFG, RACES, UNITS } from '../src/sim/data';
 import { findPath } from '../src/sim/path';
 import { idleVillagers, nearestNode, popCap, popUsed } from '../src/sim/state';
 import { T_BUSH, T_TREE, type Game } from '../src/sim/types';
@@ -93,7 +93,8 @@ describe('production', () => {
     const s = newGame();
     s.players[1].res.food = 100;
     issue(s, 1, { type: 'train', building: tc(s, 1).id, unit: 'villager' });
-    expect(s.players[1].res.food).toBe(100 - Math.round(50 * 0.85));
+    expect(s.players[1].res.food).toBe(100 - Math.round(50 * RACES.kul.unitCost['*']));
+    expect(RACES.kul.unitCost['*']).toBeLessThan(1);
   });
 });
 

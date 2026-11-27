@@ -85,7 +85,10 @@ function economy(v: View): void {
   if (!has(v, 'towncenter')) { build(v, 'towncenter'); return; }
   if (tc && tc.queue.length === 0 && v.villagers.length < A.villagers) issue(s, me, { type: 'train', building: tc.id, unit: 'villager' });
 
-  const share: Record<ResourceKind, number> = p.age >= 2 ? { food: 0.45, wood: 0.3, crystal: 0.25 } : { food: 0.55, wood: 0.45, crystal: 0 };
+  const share: Record<ResourceKind, number> = p.age >= 2 ? { food: 0.5, wood: 0.32, crystal: 0.18 } : { food: 0.55, wood: 0.45, crystal: 0 };
+  // Do not keep mining what is already piling up (Sancaklılar also get crystal from caravans).
+  if (p.res.crystal >= A.crystalEnough) { share.food += share.crystal * 0.6; share.wood += share.crystal * 0.4; share.crystal = 0; }
+  if (p.res.wood > A.woodEnough && p.res.food < p.res.wood / 2) { share.food += share.wood * 0.5; share.wood *= 0.5; }
   const count: Record<ResourceKind, number> = { food: 0, wood: 0, crystal: 0 };
   for (const u of v.villagers) { const j = jobOf(u); if (j) count[j]++; }
   const need = (k: ResourceKind) => share[k] * v.villagers.length - count[k];
@@ -134,7 +137,9 @@ function recruit(v: View): void {
     if (u.owner >= 0 && u.owner !== me && isFighter(u) && isVisible(s, me, u.x, u.y)) seen[clsOf(u)] = (seen[clsOf(u)] ?? 0) + 1;
   const top = Object.keys(COUNTER).sort((a, b) => (seen[b] ?? 0) - (seen[a] ?? 0))[0];
   const rotation = ['infantry', 'archer', 'cavalry'][(v.soldiers.length + queued) % 3];
-  for (const type of [(seen[top] ?? 0) > 0 ? COUNTER[top] : rotation, 'infantry']) {
+  // Spare crystal is best spent on cavalry.
+  const rich = p.res.crystal >= A.crystalEnough ? ['cavalry'] : [];
+  for (const type of [(seen[top] ?? 0) > 0 ? COUNTER[top] : rotation, ...rich, 'infantry']) {
     const b = has(v, TRAINED_AT[type], true);
     if (!b || b.queue.length >= 2) continue;
     const cost = unitCost(p, type);
@@ -213,6 +218,29 @@ function offer(s: Game, me: number, to: number): void {
   proposePact(s, me, to);
 }
 
+/**
+ * Armies of two players standing on an unowned relic block each other forever. End it openly:
+ * turn on whoever has the most soldiers there (a pact partner first gets the notice period).
+ */
+function breakStandOff(v: View): void {
+  const { s, me } = v, st = s.ai[me];
+  const seenBefore = st.blocker;
+  st.blocker = -1;
+  if (s.relic.owner >= 0) return;
+  const near = (u: Unit) => isFighter(u) && dist(u.x, u.y, s.relic.x, s.relic.y) <= CFG.relic.radius;
+  if (!v.army.some(near)) return;
+  const count = new Map<number, number>();
+  for (const u of s.units) if (u.owner >= 0 && u.owner !== me && near(u)) count.set(u.owner, (count.get(u.owner) ?? 0) + 1);
+  // Ties go to the lower player id so the choice does not depend on unit order.
+  const rival = [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+  if (!rival || rival[1] < 2) return;
+  // Someone merely passing through is not a stand-off: act only if they are still there a tick later.
+  st.blocker = rival[0];
+  if (seenBefore !== rival[0]) return;
+  st.enemy = rival[0];
+  declare(s, me, rival[0]);
+}
+
 function strategy(v: View): void {
   const { s, me } = v, st = s.ai[me], p = s.players[me];
   const rivals = s.players.filter((o) => o.alive && o.id !== me);
@@ -243,6 +271,7 @@ function strategy(v: View): void {
     // The trader wants the relic, and fights only those already at war with it.
     st.enemy = -1;
     st.goal = v.soldiers.length >= A.relicArmy * st.nerve || holder === me ? 'relic' : 'none';
+    if (st.goal === 'relic') breakStandOff(v);
     return;
   }
 
@@ -251,7 +280,17 @@ function strategy(v: View): void {
   if (st.enemy < 0) st.enemy = rivals.slice().sort((a, b) => strength(a.id) - strength(b.id))[0]?.id ?? -1;
   if (st.enemy < 0) return;
   if (s.war[me][st.enemy] && power(s, me) < power(s, st.enemy) * 0.6) { offer(s, me, st.enemy); st.goal = 'none'; return; }
-  if (v.soldiers.length >= A.attackArmy * st.nerve && declare(s, me, st.enemy)) st.goal = 'attack';
+  // Marching on a base favours the defender, so attack only with a clear edge; otherwise go for the relic.
+  const edge = power(s, me) >= power(s, st.enemy) * A.attackEdge;
+  if (v.soldiers.length >= A.attackArmy * st.nerve && edge) {
+    if (declare(s, me, st.enemy)) st.goal = 'attack';
+  } else if (st.goal !== 'attack' && v.soldiers.length >= A.relicArmy * st.nerve) {
+    st.goal = 'relic';
+    breakStandOff(v);
+  } else if (st.goal === 'relic' && s.relic.owner !== me && v.soldiers.length < A.retreatArmy) {
+    // Too few left to hold anything: fall back and rebuild.
+    st.goal = 'none';
+  }
 }
 
 export function stepAI(s: Game): void {

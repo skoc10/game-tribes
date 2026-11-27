@@ -139,6 +139,8 @@ export interface AIState {
   /** Per-match temperament, 0.8..1.2: scales how large an army this AI wants before it moves. */
   nerve: number;
   lastOffer: number[];
+  /** Player seen blocking the relic at the previous strategy tick, -1 if none. */
+  blocker: number;
 }
 
 export interface Relic {

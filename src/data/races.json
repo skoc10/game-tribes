@@ -1,4 +1,36 @@
 {
-  "sancak": { "name": "Sancaklılar", "gather": { "food": 1, "wood": 1, "crystal": 0.9 }, "farm": 1.2, "unitCost": { "cavalry": 0.9 }, "trainTime": 1, "buildingHp": 1, "techCost": 1, "loot": false, "caravan": true },
-  "kul": { "name": "Külboyları", "gather": { "food": 1, "wood": 1, "crystal": 1 }, "farm": 1, "unitCost": { "*": 0.85 }, "trainTime": 0.85, "buildingHp": 0.8, "techCost": 1.2, "loot": true, "caravan": false }
+  "sancak": {
+    "name": "Sancaklılar",
+    "gather": {
+      "food": 1,
+      "wood": 1,
+      "crystal": 0.9
+    },
+    "farm": 1.3,
+    "unitCost": {
+      "cavalry": 0.9
+    },
+    "trainTime": 1,
+    "buildingHp": 1,
+    "techCost": 1,
+    "loot": false,
+    "caravan": true
+  },
+  "kul": {
+    "name": "Külboyları",
+    "gather": {
+      "food": 1,
+      "wood": 1,
+      "crystal": 1
+    },
+    "farm": 1,
+    "unitCost": {
+      "*": 0.95
+    },
+    "trainTime": 0.95,
+    "buildingHp": 0.8,
+    "techCost": 1.2,
+    "loot": true,
+    "caravan": false
+  }
 }

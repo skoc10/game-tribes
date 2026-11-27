@@ -1,0 +1,179 @@
+import { BUILDINGS, CFG, RACES, UNITS } from './data';
+import { inBounds, walkable } from './path';
+import {
+  T_BUSH, T_CRYSTAL, T_GRASS, T_TREE,
+  type Building, type Game, type GameOptions, type Unit,
+} from './types';
+
+export function tileOf(s: Game, x: number, y: number): number {
+  return Math.floor(y) * s.w + Math.floor(x);
+}
+
+export function unitById(s: Game, id: number): Unit | undefined {
+  return s.units.find((u) => u.id === id);
+}
+
+export function buildingById(s: Game, id: number): Building | undefined {
+  return s.buildings.find((b) => b.id === id);
+}
+
+export function log(s: Game, player: number, kind: string, text: string): void {
+  s.events.push({ time: s.time, player, kind, text });
+}
+
+function placeNode(s: Game, x: number, y: number, terrain: number, amount: number): void {
+  x = Math.round(x); y = Math.round(y);
+  if (!inBounds(s, x, y)) return;
+  const i = y * s.w + x;
+  if (s.terrain[i] !== T_GRASS || s.occ[i] !== 0) return;
+  s.terrain[i] = terrain;
+  s.amount[i] = amount;
+}
+
+function blob(s: Game, cx: number, cy: number, r: number, terrain: number, amount: number): void {
+  for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++)
+    for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++)
+      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) placeNode(s, x, y, terrain, amount);
+}
+
+/** True if every tile of a size×size footprint at (tx, ty) is free. */
+export function canPlace(s: Game, type: string, tx: number, ty: number): boolean {
+  if (!Number.isInteger(tx) || !Number.isInteger(ty)) return false;
+  const size = BUILDINGS[type].size;
+  for (let y = ty; y < ty + size; y++)
+    for (let x = tx; x < tx + size; x++) if (!walkable(s, x, y)) return false;
+  // A unit standing inside the footprint would be walled in.
+  return !s.units.some((u) => u.x >= tx && u.x < tx + size && u.y >= ty && u.y < ty + size);
+}
+
+export function addBuilding(s: Game, owner: number, type: string, tx: number, ty: number, complete: boolean): Building {
+  const def = BUILDINGS[type];
+  const maxHp = Math.round(def.hp * RACES[s.players[owner].race].buildingHp);
+  const b: Building = {
+    id: s.nextId++, owner, type, tx, ty, maxHp, hp: complete ? maxHp : 1,
+    progress: complete ? 1 : 0, queue: [], autoVillager: false, rallyTile: -1, worker: 0,
+  };
+  for (let y = ty; y < ty + def.size; y++) for (let x = tx; x < tx + def.size; x++) s.occ[y * s.w + x] = b.id;
+  s.buildings.push(b);
+  s.mapVersion++;
+  return b;
+}
+
+export function removeBuilding(s: Game, b: Building): void {
+  const size = BUILDINGS[b.type].size;
+  for (let y = b.ty; y < b.ty + size; y++) for (let x = b.tx; x < b.tx + size; x++) s.occ[y * s.w + x] = 0;
+  s.buildings = s.buildings.filter((o) => o !== b);
+  s.mapVersion++;
+}
+
+export function addUnit(s: Game, owner: number, type: string, x: number, y: number): Unit {
+  const u: Unit = {
+    id: s.nextId++, owner, type, x, y, hp: UNITS[type].hp,
+    order: { kind: 'idle' }, path: null, pathIdx: 0, pathKey: '',
+  };
+  s.units.push(u);
+  return u;
+}
+
+/** Walkable tiles in the ring just outside a building, in a fixed order. */
+export function ringTiles(s: Game, b: Building): number[] {
+  const size = BUILDINGS[b.type].size;
+  const out: number[] = [];
+  for (let y = b.ty - 1; y <= b.ty + size; y++)
+    for (let x = b.tx - 1; x <= b.tx + size; x++) {
+      const edge = x === b.tx - 1 || x === b.tx + size || y === b.ty - 1 || y === b.ty + size;
+      if (edge && walkable(s, x, y)) out.push(y * s.w + x);
+    }
+  return out;
+}
+
+export function spawnNear(s: Game, b: Building, type: string): Unit | null {
+  const ring = ringTiles(s, b);
+  if (ring.length === 0) return null;
+  const t = ring[s.nextId % ring.length];
+  return addUnit(s, b.owner, type, (t % s.w) + 0.5, Math.floor(t / s.w) + 0.5);
+}
+
+export function createGame(opts: GameOptions): Game {
+  const size = CFG.mapSize;
+  const s: Game = {
+    seed: opts.seed, tick: 0, time: 0, w: size, h: size,
+    terrain: new Uint8Array(size * size), amount: new Float32Array(size * size),
+    occ: new Int32Array(size * size), mapVersion: 0,
+    units: [], buildings: [], players: [], nextId: 1, events: [],
+    bases: [], center: { x: size / 2, y: size / 2 },
+  };
+  const n = opts.players.length;
+  const cx = size / 2, cy = size / 2, R = size * 0.31;
+  const node = CFG.nodeAmount;
+  opts.players.forEach((setup, i) => {
+    s.players.push({
+      id: i, race: setup.race, name: setup.name ?? RACES[setup.race].name, isAI: setup.isAI,
+      res: { ...CFG.startResources }, age: 1, alive: true,
+    });
+    const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const bx = Math.round(cx + Math.cos(ang) * R), by = Math.round(cy + Math.sin(ang) * R);
+    s.bases.push({ x: bx, y: by });
+    // d points from the base to the map centre; p is perpendicular to it.
+    const dx = -Math.cos(ang), dy = -Math.sin(ang), px = -dy, py = dx;
+    const at = (along: number, side: number) => ({ x: bx + dx * along + px * side, y: by + dy * along + py * side });
+
+    const tc = addBuilding(s, i, 'towncenter', bx - 1, by - 1, true);
+    const forest = at(-8, 0), forest2 = at(-6, 7), bush = at(0, 5), crystal = at(0, -5);
+    blob(s, forest.x, forest.y, 2.5, T_TREE, node.tree);
+    blob(s, forest2.x, forest2.y, 2, T_TREE, node.tree);
+    for (let k = 0; k < 6; k++) placeNode(s, bush.x + (k % 3) * px + Math.floor(k / 3) * dx, bush.y + (k % 3) * py + Math.floor(k / 3) * dy, T_BUSH, node.bush);
+    for (let k = 0; k < 2; k++) placeNode(s, crystal.x - k * px, crystal.y - k * py, T_CRYSTAL, node.crystal);
+    // Contested resources between this base and the centre.
+    const mid = at(R * 0.55, 6), midCrystal = at(R * 0.5, -6);
+    blob(s, mid.x, mid.y, 2, T_TREE, node.tree);
+    for (let k = 0; k < 3; k++) placeNode(s, midCrystal.x + k * dx, midCrystal.y + k * dy, T_CRYSTAL, node.crystal);
+
+    for (let v = 0; v < CFG.startVillagers; v++) spawnNear(s, tc, 'villager');
+    spawnNear(s, tc, 'scout');
+    spawnNear(s, tc, 'hero');
+  });
+  return s;
+}
+
+export function popUsed(s: Game, player: number): number {
+  let n = 0;
+  for (const u of s.units) if (u.owner === player) n += UNITS[u.type].pop;
+  for (const b of s.buildings) if (b.owner === player) for (const q of b.queue) n += UNITS[q.unit].pop;
+  return n;
+}
+
+export function popCap(s: Game, player: number): number {
+  let n = 0;
+  for (const b of s.buildings) if (b.owner === player && b.progress >= 1) n += BUILDINGS[b.type].pop;
+  return Math.min(CFG.popMax, n);
+}
+
+export function idleVillagers(s: Game, player: number): Unit[] {
+  return s.units.filter((u) => u.owner === player && u.type === 'villager' && u.order.kind === 'idle');
+}
+
+/** A resource tile a villager can stand next to. */
+export function exposed(s: Game, tile: number): boolean {
+  const x = tile % s.w, y = Math.floor(tile / s.w);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && walkable(s, x + dx, y + dy)) return true;
+  return false;
+}
+
+/** Nearest exposed tile of the given terrain within radius of (x, y), or -1. */
+export function nearestNode(s: Game, terrain: number, x: number, y: number, radius: number): number {
+  let best = -1, bestD = Infinity;
+  const fx = Math.floor(x), fy = Math.floor(y);
+  for (let ty = Math.max(0, fy - radius); ty <= Math.min(s.h - 1, fy + radius); ty++)
+    for (let tx = Math.max(0, fx - radius); tx <= Math.min(s.w - 1, fx + radius); tx++) {
+      const i = ty * s.w + tx;
+      if (s.terrain[i] !== terrain || s.amount[i] <= 0) continue;
+      const d = (tx + 0.5 - x) ** 2 + (ty + 0.5 - y) ** 2;
+      if (d < bestD && exposed(s, i)) { bestD = d; best = i; }
+    }
+  return best;
+}
+
+export function isResource(terrain: number): boolean {
+  return terrain === T_TREE || terrain === T_BUSH || terrain === T_CRYSTAL;
+}

@@ -1,0 +1,13 @@
+{
+  "mapSize": 64,
+  "tickRate": 10,
+  "popMax": 60,
+  "startResources": { "food": 200, "wood": 200, "crystal": 0 },
+  "startVillagers": 4,
+  "gatherPerMinute": { "food": 28, "wood": 28, "crystal": 18 },
+  "farmPerMinute": 26,
+  "nodeAmount": { "tree": 150, "bush": 250, "crystal": 300 },
+  "autoSwitchRadius": 12,
+  "queueMax": 5,
+  "autoVillagerMax": 30
+}

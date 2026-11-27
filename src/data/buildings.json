@@ -1,0 +1,9 @@
+{
+  "towncenter": { "name": "Ana Merkez", "cost": { "wood": 300, "food": 200 }, "hp": 1500, "size": 3, "buildTime": 60, "pop": 10, "trains": ["villager", "scout"], "age": 1, "sight": 8 },
+  "house": { "name": "Ev", "cost": { "wood": 30 }, "hp": 300, "size": 2, "buildTime": 12, "pop": 5, "trains": [], "age": 1, "sight": 3 },
+  "farm": { "name": "Çiftlik", "cost": { "wood": 60 }, "hp": 200, "size": 2, "buildTime": 10, "pop": 0, "trains": [], "age": 1, "sight": 2 },
+  "barracks": { "name": "Kışla", "cost": { "wood": 120 }, "hp": 700, "size": 3, "buildTime": 25, "pop": 0, "trains": ["infantry"], "age": 1, "sight": 4 },
+  "archery": { "name": "Okçuluk Alanı", "cost": { "wood": 150 }, "hp": 600, "size": 3, "buildTime": 25, "pop": 0, "trains": ["archer"], "age": 2, "sight": 4 },
+  "stable": { "name": "Ahır", "cost": { "wood": 150 }, "hp": 600, "size": 3, "buildTime": 25, "pop": 0, "trains": ["cavalry"], "age": 2, "sight": 4 },
+  "blacksmith": { "name": "Demirci", "cost": { "wood": 150 }, "hp": 600, "size": 3, "buildTime": 25, "pop": 0, "trains": [], "age": 2, "sight": 4 }
+}

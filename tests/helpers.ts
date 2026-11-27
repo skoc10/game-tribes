@@ -3,8 +3,9 @@ import { addUnit, createGame } from '../src/sim/state';
 import { step } from '../src/sim/step';
 import type { Game, RaceId, Unit } from '../src/sim/types';
 
-export const newGame = (seed = 1, races: RaceId[] = ['sancak', 'kul', 'sancak']): Game =>
-  createGame({ seed, players: races.map((race, i) => ({ race, isAI: i > 0 })) });
+/** Tests start at war-ready time unless they ask for a peace period. */
+export const newGame = (seed = 1, races: RaceId[] = ['sancak', 'kul', 'sancak'], peaceSeconds = 0): Game =>
+  createGame({ seed, peaceSeconds, players: races.map((race, i) => ({ race, isAI: i > 0 })) });
 
 export const run = (s: Game, seconds: number): void => {
   for (let i = 0; i < Math.round(seconds * CFG.tickRate); i++) step(s);

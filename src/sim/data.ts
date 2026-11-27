@@ -10,6 +10,17 @@ export const RACES = racesJson as Record<RaceId, RaceDef>;
 export const CFG = configJson;
 export const DT = 1 / CFG.tickRate;
 export const KINDS: ResourceKind[] = ['food', 'wood', 'crystal'];
+export interface TechDef { name: string; cost: Cost; time: number; text: string }
+export const TECHS = configJson.techs as Record<string, TechDef>;
+
+export function techCost(p: Player, tech: string): Cost {
+  const out: Cost = {};
+  for (const k of KINDS) {
+    const v = TECHS[tech].cost[k];
+    if (v) out[k] = Math.round(v * RACES[p.race].techCost);
+  }
+  return out;
+}
 
 export function unitCost(p: Player, type: string): Cost {
   const race = RACES[p.race];

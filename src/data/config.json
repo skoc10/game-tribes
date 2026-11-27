@@ -89,7 +89,7 @@
   },
   "hero": {
     "xpPerLevel": 40,
-    "xpBeast": 12,
+    "xpBeast": 15,
     "xpUnit": 10,
     "xpHero": 40,
     "xpRadius": 8,
@@ -98,5 +98,44 @@
     "respawnBase": 30,
     "respawnPerLevel": 10
   },
-  "fogInterval": 5
+  "fogInterval": 5,
+  "peaceSeconds": 480,
+  "peaceWarning": 60,
+  "peaceHeroCap": 3,
+  "age2": {
+    "cost": {
+      "food": 400,
+      "wood": 200
+    },
+    "time": 30,
+    "prereq": 2
+  },
+  "relic": {
+    "radius": 3,
+    "captureTime": 20,
+    "holdToWin": 180,
+    "crystalPerMinute": 15,
+    "xpBonus": 1.5
+  },
+  "eliminationGrace": 90,
+  "techs": {
+    "weapon1": {
+      "name": "Silah I",
+      "cost": {
+        "food": 100,
+        "crystal": 50
+      },
+      "time": 30,
+      "text": "Askerlerin hasarı +1"
+    },
+    "armor1": {
+      "name": "Zırh I",
+      "cost": {
+        "food": 100,
+        "crystal": 50
+      },
+      "time": 30,
+      "text": "Askerlerin aldığı hasar −1"
+    }
+  }
 }

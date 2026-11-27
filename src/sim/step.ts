@@ -5,6 +5,7 @@ import { BUILDINGS, CFG, DT, RACES } from './data';
 import { updateFog } from './fog';
 import { besideRect, goTo } from './move';
 import { walkable } from './path';
+import { stepRules } from './rules';
 import { buildingById, isResource, nearestNode, spawnNear } from './state';
 import { T_BUSH, T_CRYSTAL, T_GRASS, T_TREE, type Building, type Game, type ResourceKind, type Unit } from './types';
 
@@ -162,6 +163,7 @@ function stepHeroes(s: Game): void {
 
 /** Advances the simulation by one fixed tick. */
 export function step(s: Game): void {
+  if (s.winner >= 0) return;
   s.tick++;
   s.time = s.tick * DT;
   for (const b of s.buildings.slice()) stepBuilding(s, b);
@@ -169,5 +171,6 @@ export function step(s: Game): void {
   for (const u of s.units.slice()) if (u.hp > 0) stepUnit(s, u);
   stepCamps(s);
   stepHeroes(s);
+  stepRules(s);
   if (s.tick % CFG.fogInterval === 0) updateFog(s);
 }

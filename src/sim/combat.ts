@@ -1,7 +1,7 @@
 import { BUILDINGS, CFG, KINDS, RACES, UNITS, unitCost } from './data';
 import { goTo, nearRect, type Travel } from './move';
 import { walkable } from './path';
-import { hostile } from './relations';
+import { hostile, inPeace } from './relations';
 import { buildingById, log, removeBuilding, unitById } from './state';
 import type { Building, Cost, Game, Unit } from './types';
 
@@ -32,16 +32,16 @@ export function xpForLevel(level: number): number {
   return CFG.hero.xpPerLevel * level;
 }
 
-/** Highest hero level currently allowed. Later phases cap it during the peace period. */
-export function heroLevelCap(_s: Game): number {
-  return CFG.hero.maxLevel;
+/** Highest hero level currently allowed: capped while the peace period lasts. */
+export function heroLevelCap(s: Game): number {
+  return inPeace(s) ? CFG.peaceHeroCap : CFG.hero.maxLevel;
 }
 
 function grantXp(s: Game, player: number, x: number, y: number, xp: number): void {
   const hero = s.units.find((u) => u.owner === player && u.type === 'hero');
   if (!hero || (hero.x - x) ** 2 + (hero.y - y) ** 2 > CFG.hero.xpRadius ** 2) return;
   const p = s.players[player];
-  p.heroXp += xp;
+  p.heroXp += xp * (s.relic.owner === player ? CFG.relic.xpBonus : 1);
   while (p.heroLevel < heroLevelCap(s) && p.heroXp >= xpForLevel(p.heroLevel)) {
     p.heroXp -= xpForLevel(p.heroLevel);
     p.heroLevel++;
@@ -84,8 +84,17 @@ export function destroyBuilding(s: Game, b: Building, killer: number): void {
     give(s, killer, BUILDINGS[b.type].cost, CFG.loot.building, b.tx + size / 2, b.ty + size / 2);
 }
 
-function damageOf(u: Unit): number {
-  return UNITS[u.type].damage * u.scale;
+const soldier = (u: Unit): boolean => u.owner >= 0 && isFighter(u);
+
+function damageOf(s: Game, u: Unit): number {
+  const bonus = soldier(u) && s.players[u.owner].upgrades.includes('weapon1') ? 1 : 0;
+  return UNITS[u.type].damage * u.scale + bonus;
+}
+
+/** Damage after the defender's armour; a hit always does at least 1. */
+function afterArmor(s: Game, t: Unit, damage: number): number {
+  const armor = soldier(t) && s.players[t.owner].upgrades.includes('armor1') ? 1 : 0;
+  return Math.max(1, damage - armor);
 }
 
 /**
@@ -111,7 +120,7 @@ export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
     u.path = null; u.pathKey = '';
     if (u.cooldown <= 0) {
       u.cooldown = CFG.combat.cooldown;
-      t.hp -= damageOf(u) * multiplier(clsOf(u), clsOf(t));
+      t.hp -= afterArmor(s, t, damageOf(s, u) * multiplier(clsOf(u), clsOf(t)));
       if (t.hp <= 0) killUnit(s, t, u.owner);
       // A fighter with nothing better to do turns on whoever is hitting it, even from beyond its own aggro range.
       else if (!t.target && t.owner >= 0 && isFighter(t) && (t.order.kind === 'idle' || t.order.kind === 'attackMove')) t.target = u.id;
@@ -133,7 +142,7 @@ export function engageBuilding(s: Game, u: Unit, b: Building): boolean {
     u.path = null; u.pathKey = '';
     if (u.cooldown <= 0) {
       u.cooldown = CFG.combat.cooldown;
-      b.hp -= damageOf(u) * (VS_BUILDING[clsOf(u)] ?? 0.5);
+      b.hp -= damageOf(s, u) * (VS_BUILDING[clsOf(u)] ?? 0.5);
       if (b.hp <= 0) destroyBuilding(s, b, u.owner);
     }
     return true;

@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { clsOf, isFighter, maxHp, multiplier } from '../sim/combat';
 import { issue, type Command } from '../sim/commands';
-import { BUILDINGS, DT, UNITS } from '../sim/data';
+import { BUILDINGS, CFG, DT, UNITS } from '../sim/data';
 import { isExplored, isVisible } from '../sim/fog';
 import { buildingById, canPlace, idleVillagers, isResource, unitById } from '../sim/state';
+import { inPeace } from '../sim/relations';
 import { step } from '../sim/step';
 import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type Unit } from '../sim/types';
 import { Hud } from './hud';
@@ -86,6 +87,9 @@ export class GameScene extends Phaser.Scene {
       case 'train': this.cmd({ type: 'train', building: this.selBuilding, unit: arg }); break;
       case 'build': this.placing = arg; break;
       case 'cancel': this.cmd({ type: 'cancel', building: this.selBuilding }); break;
+      case 'ageUp': this.cmd({ type: 'ageUp', building: this.selBuilding }); break;
+      case 'research': this.cmd({ type: 'research', building: this.selBuilding, tech: arg }); break;
+      case 'restart': location.reload(); break;
       case 'explore': this.cmd({ type: 'explore', units: this.selUnits }); break;
       case 'army': this.selectArmy(); break;
       case 'hero': this.selectHero(); break;
@@ -226,6 +230,7 @@ export class GameScene extends Phaser.Scene {
     this.drawEntities();
     this.drawOverlay();
     this.hud.render(this);
+    this.hud.renderResult(this);
   }
 
   /** Shows floating text for events that happened where the player can see them. */
@@ -290,6 +295,7 @@ export class GameScene extends Phaser.Scene {
       g.lineStyle(2, b.id === this.selBuilding ? 0xffffff : 0x1b1b1b).strokeRect(px + 2, py + 2, w - 4, w - 4);
       if (b.progress < 1) this.bar(px + 4, py + w - 10, w - 8, b.progress, 0xf0d060);
       else if (b.hp < b.maxHp) this.bar(px + 4, py + 4, w - 8, b.hp / b.maxHp, 0x55dd55);
+      if (b.research) this.bar(px + 4, py + w - 16, w - 8, 1 - b.research.remaining / b.research.total, 0xc084fc);
       if (b.queue[0]) this.bar(px + 4, py + w - 10, w - 8, 1 - b.queue[0].remaining / b.queue[0].total, 0x66ccff);
       let label = this.labels.get(b.id);
       if (!label) {
@@ -299,6 +305,7 @@ export class GameScene extends Phaser.Scene {
       label.setPosition(px + w / 2, py + w / 2);
     }
     for (const [id, label] of this.labels) if (!seen.has(id)) { label.destroy(); this.labels.delete(id); }
+    this.drawRelic();
 
     for (const u of s.units) {
       if (!this.visibleAt(u.x, u.y)) continue;
@@ -308,6 +315,20 @@ export class GameScene extends Phaser.Scene {
       this.drawUnit(u, x, y);
       const max = this.maxHp(u);
       if (u.hp < max) this.bar(x - 10, y - 16, 20, u.hp / max, 0x55dd55);
+    }
+  }
+
+  /** The Kadim Harabe: a stone ring in its owner's colour, with a capture arc while someone is taking it. */
+  private drawRelic(): void {
+    const s = this.s, r = s.relic, g = this.entG;
+    if (!isExplored(s, this.me, r.x, r.y)) return;
+    const x = r.x * TILE, y = r.y * TILE, radius = CFG.relic.radius * TILE;
+    g.lineStyle(3, r.owner >= 0 ? PLAYER_COLORS[r.owner] : 0xcfc7b0, inPeace(s) ? 0.35 : 0.9).strokeCircle(x, y, radius);
+    g.fillStyle(0xcfc7b0, inPeace(s) ? 0.5 : 1);
+    for (let i = 0; i < 6; i++) g.fillRect(x + Math.cos((i * Math.PI) / 3) * 26 - 5, y + Math.sin((i * Math.PI) / 3) * 26 - 9, 10, 18);
+    if (r.captor >= 0) {
+      g.lineStyle(6, PLAYER_COLORS[r.captor]).beginPath();
+      g.arc(x, y, radius - 6, -Math.PI / 2, -Math.PI / 2 + (r.progress / CFG.relic.captureTime) * Math.PI * 2).strokePath();
     }
   }
 

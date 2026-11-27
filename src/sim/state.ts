@@ -53,7 +53,7 @@ export function addBuilding(s: Game, owner: number, type: string, tx: number, ty
   const maxHp = Math.round(def.hp * RACES[s.players[owner].race].buildingHp);
   const b: Building = {
     id: s.nextId++, owner, type, tx, ty, maxHp, hp: complete ? maxHp : 1,
-    progress: complete ? 1 : 0, queue: [], autoVillager: false, rallyTile: -1, worker: 0,
+    progress: complete ? 1 : 0, queue: [], autoVillager: false, rallyTile: -1, worker: 0, research: null,
   };
   for (let y = ty; y < ty + def.size; y++) for (let x = tx; x < tx + def.size; x++) s.occ[y * s.w + x] = b.id;
   s.buildings.push(b);
@@ -106,6 +106,9 @@ export function createGame(opts: GameOptions): Game {
     units: [], buildings: [], players: [], nextId: 1, events: [],
     bases: [], center: { x: size / 2, y: size / 2 },
     camps: [], fog: [], fogVersion: 0, war: [],
+    peaceEnd: opts.peaceSeconds ?? CFG.peaceSeconds,
+    relic: { x: size / 2, y: size / 2, owner: -1, captor: -1, progress: 0, heldSince: 0 },
+    winner: -1, winKind: '',
   };
   const n = opts.players.length;
   const cx = size / 2, cy = size / 2, R = size * 0.31;
@@ -113,7 +116,7 @@ export function createGame(opts: GameOptions): Game {
   opts.players.forEach((setup, i) => {
     s.players.push({
       id: i, race: setup.race, name: setup.name ?? RACES[setup.race].name, isAI: setup.isAI,
-      res: { ...CFG.startResources }, age: 1, alive: true, heroLevel: 1, heroXp: 0, heroRespawn: -1,
+      res: { ...CFG.startResources }, age: 1, alive: true, heroLevel: 1, heroXp: 0, heroRespawn: -1, upgrades: [], tcLostAt: -1,
     });
     s.fog.push({ explored: new Uint8Array(size * size), visible: new Uint8Array(size * size) });
     s.war.push(opts.players.map(() => false));
@@ -139,7 +142,7 @@ export function createGame(opts: GameOptions): Game {
     spawnNear(s, tc, 'scout');
     spawnNear(s, tc, 'hero');
     // One camp beside each base and one between each pair of neighbours.
-    const near = at(5, -12);
+    const near = at(3, -11);
     const between = { x: cx + Math.cos(ang + Math.PI / n) * R, y: cy + Math.sin(ang + Math.PI / n) * R };
     for (const c of [near, between]) s.camps.push({ x: Math.round(c.x) + 0.5, y: Math.round(c.y) + 0.5, tier: 1, alive: 0, respawnAt: -1 });
   });

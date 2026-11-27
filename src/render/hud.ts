@@ -1,4 +1,7 @@
-import { BUILDINGS, RACES, UNITS, unitCost } from '../sim/data';
+import { agePrereqCount } from '../sim/commands';
+import { BUILDINGS, CFG, RACES, TECHS, UNITS, techCost, unitCost } from '../sim/data';
+import { inPeace } from '../sim/relations';
+import { relicCountdown } from '../sim/rules';
 import { buildingById, idleVillagers, popCap, popUsed, unitById } from '../sim/state';
 import type { Cost, Game } from '../sim/types';
 
@@ -74,8 +77,20 @@ export class Hud {
     ].join('');
   }
 
-  /** Hook for later phases (peace timer, relic countdown). */
-  protected extraTop(_v: HudView): string { return ''; }
+  /** Peace timer and relic status: the two clocks every player must be able to see. */
+  protected extraTop(v: HudView): string {
+    const s = v.s, r = s.relic;
+    const peace = inPeace(s)
+      ? `<span class="stat" title="Bu süre bitene kadar kimse kimseye saldıramaz">🕊 Barış: ${clock(s.peaceEnd - s.time)}</span>`
+      : `<span class="stat">⚔ Barış bitti</span>`;
+    let relic = '🏛 Harabe: uykuda';
+    if (!inPeace(s)) {
+      if (r.owner >= 0) relic = `🏛 Harabe: <b>${s.players[r.owner].name}</b> — zafere ${clock(relicCountdown(s))}`;
+      else if (r.captor >= 0) relic = `🏛 Harabe: ${s.players[r.captor].name} ele geçiriyor %${Math.floor((r.progress / CFG.relic.captureTime) * 100)}`;
+      else relic = '🏛 Harabe: sahipsiz';
+    }
+    return `${peace}<span class="stat">${relic}</span>`;
+  }
 
   private panelHtml(v: HudView): string {
     const { s, me } = v;
@@ -114,6 +129,34 @@ export class Hud {
     return parts.join('');
   }
 
-  /** Hook for later phases (age up, research). */
-  protected extraBuilding(_v: HudView, _building: number): string { return ''; }
+  protected extraBuilding(v: HudView, building: number): string {
+    const s = v.s, p = s.players[v.me], b = buildingById(s, building)!;
+    const parts: string[] = [];
+    if (b.research) {
+      const name = b.research.id === 'age2' ? 'Kale Çağı' : TECHS[b.research.id].name;
+      parts.push(`<span>🔬 ${name}: %${Math.floor((1 - b.research.remaining / b.research.total) * 100)}</span>`);
+    } else if (b.type === 'towncenter' && p.age < 2) {
+      const have = agePrereqCount(s, v.me);
+      const need = have < CFG.age2.prereq ? `önce ${CFG.age2.prereq} farklı bina (${have}/${CFG.age2.prereq})` : costText(CFG.age2.cost);
+      parts.push(`<button data-act="ageUp">⬆ Kale Çağı'na geç<small>${need}</small></button>`);
+    } else if (b.type === 'blacksmith') {
+      for (const id of Object.keys(TECHS)) {
+        if (p.upgrades.includes(id)) parts.push(`<span>✔ ${TECHS[id].name}</span>`);
+        else parts.push(`<button data-act="research:${id}" title="${TECHS[id].text}">${TECHS[id].name}<small>${costText(techCost(p, id))}</small></button>`);
+      }
+    }
+    return parts.join('');
+  }
+
+  /** Full-screen result once the match is decided. */
+  renderResult(v: HudView): void {
+    const s = v.s;
+    if (s.winner < 0 || document.getElementById('result')) return;
+    const won = s.winner === v.me;
+    const how = s.winKind === 'relic' ? 'Kadim Harabe\'yi 3 dakika elinde tuttu' : 'ayakta kalan son halk oldu';
+    const el = document.createElement('div');
+    el.id = 'result';
+    el.innerHTML = `<h1>${won ? '🏆 Zafer!' : 'Maç bitti'}</h1><div><b>${s.players[s.winner].name}</b> ${how}.</div><div>Süre: ${clock(s.time)}</div><button data-act="restart">Yeniden oyna</button>`;
+    document.body.appendChild(el);
+  }
 }

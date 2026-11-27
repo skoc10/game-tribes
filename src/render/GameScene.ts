@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 import { clsOf, isFighter, maxHp, multiplier } from '../sim/combat';
 import { issue, type Command } from '../sim/commands';
-import { BUILDINGS, CFG, DT, UNITS } from '../sim/data';
+import { BUILDINGS, CFG, DT, RACES, UNITS } from '../sim/data';
+import { pactOf } from '../sim/diplomacy';
 import { isExplored, isVisible } from '../sim/fog';
 import { buildingById, canPlace, idleVillagers, isResource, unitById } from '../sim/state';
 import { inPeace } from '../sim/relations';
 import { step } from '../sim/step';
-import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type Unit } from '../sim/types';
+import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type ResourceKind, type Unit } from '../sim/types';
 import { Hud } from './hud';
 
 export const TILE = 32;
@@ -21,7 +22,11 @@ export class GameScene extends Phaser.Scene {
   selUnits: number[] = [];
   selBuilding = 0;
   placing: string | null = null;
+  showDiplomacy = true;
   hud!: Hud;
+  /** A command waiting for the player to confirm a betrayal. */
+  private pending: Command | null = null;
+  private pausedBefore = false;
 
   private acc = 0;
   private drawnMap = -1;
@@ -55,7 +60,7 @@ export class GameScene extends Phaser.Scene {
 
     this.input.mouse?.disableContextMenu();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>;
-    this.input.keyboard!.on('keydown-SPACE', () => (this.paused = !this.paused));
+    this.input.keyboard!.on('keydown-SPACE', () => { if (!this.pending) this.paused = !this.paused; });
     this.input.keyboard!.on('keydown-ESC', () => { this.placing = null; this.selUnits = []; this.selBuilding = 0; });
     this.input.keyboard!.on('keydown-PERIOD', () => this.selectIdle());
     this.input.keyboard!.on('keydown-Q', () => this.selectArmy());
@@ -75,7 +80,8 @@ export class GameScene extends Phaser.Scene {
   /** Sends a command for the local player and shows the reason if it is refused. */
   protected cmd(c: Command): boolean {
     const r = issue(this.s, this.me, c);
-    if (!r.ok && r.reason) this.hud.toast(r.reason);
+    if (!r.ok && r.needsConfirm && r.reason) { this.pending = c; this.pausedBefore = this.paused; this.paused = true; this.hud.confirm(r.reason); }
+    else if (!r.ok && r.reason) this.hud.toast(r.reason);
     return r.ok;
   }
 
@@ -90,6 +96,25 @@ export class GameScene extends Phaser.Scene {
       case 'ageUp': this.cmd({ type: 'ageUp', building: this.selBuilding }); break;
       case 'research': this.cmd({ type: 'research', building: this.selBuilding, tech: arg }); break;
       case 'restart': location.reload(); break;
+      case 'diplomacy': this.showDiplomacy = !this.showDiplomacy; break;
+      case 'pact': this.cmd({ type: 'proposePact', to: Number(arg) }); break;
+      case 'endpact': this.cmd({ type: 'endPact', other: Number(arg) }); break;
+      case 'accept': this.cmd({ type: 'answerPact', from: Number(arg), accept: true }); break;
+      case 'reject': this.cmd({ type: 'answerPact', from: Number(arg), accept: false }); break;
+      case 'gift': {
+        const [to, kind] = arg.split('-');
+        this.cmd({ type: 'gift', to: Number(to), kind: kind as ResourceKind, amount: CFG.diplomacy.giftAmount });
+        break;
+      }
+      case 'confirmYes':
+      case 'confirmNo': {
+        const c = this.pending;
+        this.pending = null;
+        this.paused = this.pausedBefore;
+        document.getElementById('confirm')?.remove();
+        if (action === 'confirmYes' && c && c.type === 'attack') this.cmd({ ...c, confirm: true });
+        break;
+      }
       case 'explore': this.cmd({ type: 'explore', units: this.selUnits }); break;
       case 'army': this.selectArmy(); break;
       case 'hero': this.selectHero(); break;
@@ -244,7 +269,8 @@ export class GameScene extends Phaser.Scene {
       const e = events[this.seenEvents];
       if (e.player !== this.me) continue;
       if (e.kind === 'loot' || e.kind === 'level') this.floatText(e.text, e.x ?? 0, e.y ?? 0, e.kind === 'loot' ? '#ffd24a' : '#9be7ff');
-      else this.hud.toast(e.text);
+      // Reasons live in the diplomacy panel; with the panel closed they still have to reach the player.
+      else if (e.kind !== 'why' || !this.showDiplomacy) this.hud.toast(e.text);
     }
   }
 
@@ -310,6 +336,7 @@ export class GameScene extends Phaser.Scene {
     }
     for (const [id, label] of this.labels) if (!seen.has(id)) { label.destroy(); this.labels.delete(id); }
     this.drawRelic();
+    this.drawCaravans();
 
     for (const u of s.units) {
       if (!this.visibleAt(u.x, u.y)) continue;
@@ -319,6 +346,21 @@ export class GameScene extends Phaser.Scene {
       this.drawUnit(u, x, y);
       const max = this.maxHp(u);
       if (u.hp < max) this.bar(x - 10, y - 16, 20, u.hp / max, 0x55dd55);
+    }
+  }
+
+  /** Sancak Kervanı: a wagon shuttling between the two bases for every pact a caravan people holds. */
+  private drawCaravans(): void {
+    const s = this.s, g = this.entG;
+    for (const a of s.players) for (const b of s.players) {
+      if (a.id === b.id || !a.alive || !b.alive || !RACES[a.race].caravan || !pactOf(s, a.id, b.id)) continue;
+      const from = s.bases[a.id], to = s.bases[b.id];
+      const phase = ((s.time + a.id * 7) % 60) / 30, t = phase < 1 ? phase : 2 - phase;
+      const x = from.x + (to.x - from.x) * t, y = from.y + (to.y - from.y) * t;
+      if (!this.visibleAt(x, y)) continue;
+      g.fillStyle(PLAYER_COLORS[a.id]).lineStyle(1.5, 0x111111).fillRect(x * TILE - 9, y * TILE - 6, 18, 11).strokeRect(x * TILE - 9, y * TILE - 6, 18, 11);
+      g.fillStyle(0x7fd8ff).fillCircle(x * TILE, y * TILE - 1, 3);
+      g.fillStyle(0x2a2a2a).fillCircle(x * TILE - 5, y * TILE + 6, 3).fillCircle(x * TILE + 5, y * TILE + 6, 3);
     }
   }
 

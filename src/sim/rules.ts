@@ -1,5 +1,6 @@
 import { isFighter } from './combat';
 import { CFG, DT, TECHS } from './data';
+import { addRelation, stepDiplomacy } from './diplomacy';
 import { inPeace } from './relations';
 import { log, removeBuilding } from './state';
 import type { Game } from './types';
@@ -47,6 +48,7 @@ function stepRelic(s: Game): void {
     if (r.captor !== sole) { r.captor = sole; r.progress = 0; }
     r.progress += DT;
     if (r.progress >= CFG.relic.captureTime) {
+      if (r.owner >= 0) addRelation(s, sole, r.owner, -CFG.diplomacy.relicRelation, `${s.players[sole].name} Kadim Harabe'yi elinden aldı.`);
       r.owner = sole; r.captor = -1; r.progress = 0; r.heldSince = s.time;
       everyone(s, 'relic', `${s.players[sole].name} Kadim Harabe'yi ele geçirdi. ${CFG.relic.holdToWin / 60} dakika tutarsa kazanır!`);
     }
@@ -91,6 +93,7 @@ export function stepRules(s: Game): void {
   // Elimination first, so a player removed this tick cannot also win with the relic.
   stepElimination(s);
   if (s.winner < 0) stepRelic(s);
+  stepDiplomacy(s);
 }
 
 /** Seconds until the relic holder wins, or -1 if nobody holds it. */

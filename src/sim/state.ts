@@ -1,7 +1,9 @@
 import { BUILDINGS, CFG, RACES, UNITS } from './data';
 import { spawnCamp } from './camps';
+import { initDiplo } from './diplomacy';
 import { updateFog } from './fog';
 import { inBounds, walkable } from './path';
+import { rand } from './rng';
 import {
   T_BUSH, T_CRYSTAL, T_GRASS, T_TREE,
   type Building, type Game, type GameOptions, type Unit,
@@ -114,6 +116,7 @@ export function createGame(opts: GameOptions): Game {
     peaceEnd: opts.peaceSeconds ?? CFG.peaceSeconds,
     relic: { x: size / 2, y: size / 2, owner: -1, captor: -1, progress: 0, heldSince: 0 },
     winner: -1, winKind: '',
+    diplo: undefined as unknown as Game['diplo'], ai: [],
   };
   const n = opts.players.length;
   const cx = size / 2, cy = size / 2, R = size * 0.31;
@@ -121,6 +124,7 @@ export function createGame(opts: GameOptions): Game {
   opts.players.forEach((setup, i) => {
     s.players.push({
       id: i, race: setup.race, name: setup.name ?? RACES[setup.race].name, isAI: setup.isAI,
+      personality: setup.isAI ? setup.personality ?? (setup.race === 'kul' ? 'expander' : 'trader') : '',
       res: { ...CFG.startResources }, age: 1, alive: true, heroLevel: 1, heroXp: 0, heroRespawn: -1, upgrades: [], tcLostAt: -1,
     });
     s.fog.push({ explored: new Uint8Array(size * size), visible: new Uint8Array(size * size) });
@@ -152,6 +156,12 @@ export function createGame(opts: GameOptions): Game {
     for (const c of [near, between]) s.camps.push({ x: Math.round(c.x) + 0.5, y: Math.round(c.y) + 0.5, tier: 1, alive: 0, respawnAt: -1 });
   });
   s.camps.forEach((_, i) => spawnCamp(s, i));
+  initDiplo(s);
+  // Seeded variation so that no two matches play out identically.
+  s.ai = s.players.map(() => ({
+    nextThink: rand(s) * CFG.ai.thinkSeconds, nextStrategy: rand(s) * CFG.ai.strategySeconds,
+    enemy: -1, goal: 'none', nerve: 0.8 + rand(s) * 0.4, lastOffer: s.players.map(() => -999),
+  }));
   updateFog(s);
   return s;
 }

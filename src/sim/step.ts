@@ -1,3 +1,4 @@
+import { stepAI } from './ai';
 import { nearLiveCamp, stepCamps } from './camps';
 import { attackTarget, autoFight, isFighter, maxHp, stepBeast } from './combat';
 import { issue, setOrder } from './commands';
@@ -162,6 +163,7 @@ export function step(s: Game): void {
   if (s.winner >= 0) return;
   s.tick++;
   s.time = s.tick * DT;
+  stepAI(s);
   for (const b of s.buildings.slice()) stepBuilding(s, b);
   // A unit killed earlier in this tick must not act.
   for (const u of s.units.slice()) if (u.hp > 0) stepUnit(s, u);

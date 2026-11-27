@@ -1,5 +1,6 @@
 import { agePrereqCount } from '../sim/commands';
 import { BUILDINGS, CFG, RACES, TECHS, UNITS, techCost, unitCost } from '../sim/data';
+import { isTraitor, pactOf } from '../sim/diplomacy';
 import { inPeace } from '../sim/relations';
 import { relicCountdown } from '../sim/rules';
 import { buildingById, idleVillagers, popCap, popUsed, unitById } from '../sim/state';
@@ -8,6 +9,17 @@ import type { Cost, Game } from '../sim/types';
 export interface HudView {
   s: Game; me: number; speed: number; paused: boolean;
   selUnits: number[]; selBuilding: number; placing: string | null;
+  showDiplomacy: boolean;
+}
+
+const COLORS = ['#4c8dff', '#e5533d', '#e3c341', '#b565e0'];
+
+/** A face for the number, so the mood of a rival can be read at a glance. */
+function mood(relation: number, atWar: boolean): string {
+  if (atWar) return '😠 Düşman';
+  if (relation >= 40) return '🙂 Dostane';
+  if (relation >= 0) return '😐 Nötr';
+  return '🤨 Şüpheli';
 }
 
 const ICON = { food: '🍖', wood: '🪵', crystal: '💎' } as const;
@@ -29,6 +41,8 @@ export class Hud {
   private toastEl = document.getElementById('toast')!;
   private lastTop = '';
   private lastPanel = '';
+  private side = document.getElementById('side')!;
+  private lastSide = '';
   private toastTimer = 0;
 
   constructor(onAction: (action: string, arg: string) => void) {
@@ -53,6 +67,8 @@ export class Hud {
     if (top !== this.lastTop) { this.top.innerHTML = top; this.lastTop = top; }
     const panel = this.panelHtml(v);
     if (panel !== this.lastPanel) { this.panel.innerHTML = panel; this.lastPanel = panel; }
+    const side = v.showDiplomacy ? this.sideHtml(v) : '';
+    if (side !== this.lastSide) { this.side.innerHTML = side; this.side.style.display = side ? 'block' : 'none'; this.lastSide = side; }
   }
 
   private topHtml(v: HudView): string {
@@ -68,6 +84,7 @@ export class Hud {
       `<span class="stat">Çağ ${p.age}</span>`,
       this.extraTop(v),
       `<span class="grow"></span>`,
+      `<button data-act="diplomacy" class="${v.showDiplomacy ? 'on' : ''}">🤝 Diplomasi${v.s.diplo.offers.some((o) => o.to === v.me) ? ' ❗' : ''}</button>`,
       `<button data-act="hero">⭐ Kahraman ${p.heroRespawn >= 0 ? `(${Math.max(0, Math.ceil(p.heroRespawn - v.s.time))} sn)` : `Sv. ${p.heroLevel}`}</button>`,
       `<button data-act="army">⚔ Tüm askerler</button>`,
       idle > 0 ? `<button data-act="idle" class="warn">💤 Boşta köylü: ${idle}</button>` : '',
@@ -146,6 +163,38 @@ export class Hud {
       }
     }
     return parts.join('');
+  }
+
+  /** Diplomacy panel: every rival's mood and numbers, what can be done, and the reasons behind each change. */
+  private sideHtml(v: HudView): string {
+    const s = v.s, me = v.me, d = s.diplo, D = CFG.diplomacy;
+    const out = [`<b>Güvenilirliğin: ${d.trust[me]}</b>${isTraitor(s, me) ? ` — 🚫 Hain damgası (${clock(d.traitorUntil[me] - s.time)})` : ''}`];
+    for (const o of d.offers.filter((x) => x.to === me))
+      out.push(`<div class="rival">📜 <b>${s.players[o.from].name}</b> pakt teklif ediyor.<br><button data-act="accept:${o.from}">Kabul et</button><button data-act="reject:${o.from}">Reddet</button></div>`);
+    for (const p of s.players) {
+      if (p.id === me) continue;
+      if (!p.alive) { out.push(`<div class="rival"><span class="dot" style="background:${COLORS[p.id]}"></span><s>${p.name}</s> — elendi</div>`); continue; }
+      const pact = pactOf(s, me, p.id), war = s.war[me][p.id] && !pact;
+      let state = war ? '⚔ Savaştasınız' : 'Anlaşma yok';
+      if (pact) state = pact.endsAt >= 0 ? `📜 Pakt bitiyor: ${clock(pact.endsAt - s.time)}` : `📜 Pakt: ${clock(pact.until - s.time)}`;
+      const buttons: string[] = [];
+      if (!pact || pact.until - s.time <= D.noticeSeconds) buttons.push(`<button data-act="pact:${p.id}" title="İlişki en az ${D.pactRelation}, Güvenilirlik en az ${D.pactTrust} olmalı">${pact ? 'Paktı yenile' : 'Pakt teklif et'}</button>`);
+      if (pact && pact.endsAt < 0) buttons.push(`<button data-act="endpact:${p.id}" title="${D.noticeSeconds} sn önceden haber verirsin; Güvenilirlik −${D.noticePenalty}">Paktı bitir</button>`);
+      buttons.push(`<button data-act="gift:${p.id}-food" title="İlişkiyi yükseltir">🎁 ${D.giftAmount} 🍖</button><button data-act="gift:${p.id}-wood" title="İlişkiyi yükseltir">🎁 ${D.giftAmount} 🪵</button>`);
+      out.push(`<div class="rival"><span class="dot" style="background:${COLORS[p.id]}"></span><b>${p.name}</b><br>${mood(d.relation[me][p.id], war)} · İlişki ${d.relation[me][p.id]} · Güvenilirlik ${d.trust[p.id]}<br>${state}<br>${buttons.join('')}</div>`);
+    }
+    const why = s.events.filter((e) => e.player === me && e.kind === 'why').slice(-6).reverse();
+    out.push('<h3>Neden?</h3>' + (why.length ? why.map((e) => `<div class="why">${clock(e.time)} · ${e.text}</div>`).join('') : '<div class="why">Henüz bir değişiklik yok.</div>'));
+    return out.join('');
+  }
+
+  /** Asks before an irreversible choice such as breaking a pact. */
+  confirm(text: string): void {
+    document.getElementById('confirm')?.remove();
+    const el = document.createElement('div');
+    el.id = 'confirm';
+    el.innerHTML = `<div>⚠️ ${text}<br><b>Emin misin?</b><br><button data-act="confirmYes" class="warn">Evet, saldır</button><button data-act="confirmNo">Vazgeç</button></div>`;
+    document.body.appendChild(el);
   }
 
   /** Full-screen result once the match is decided. */

@@ -1,8 +1,8 @@
 import { isFighter } from './combat';
 import { BUILDINGS, CFG, KINDS, TECHS, UNITS, canAfford, pay, techCost, trainTime, unitCost } from './data';
-import { declareWar, mayAttack } from './relations';
+import { answerOffer, endPact, gift, openHostilities, proposePact } from './diplomacy';
 import { addBuilding, buildingById, canPlace, isResource, nearestNode, popCap, popUsed, removeBuilding, unitById } from './state';
-import type { Game, Order, Unit } from './types';
+import type { Game, Order, ResourceKind, Unit } from './types';
 
 export type Command =
   | { type: 'move'; units: number[]; x: number; y: number }
@@ -16,11 +16,15 @@ export type Command =
   | { type: 'cancel'; building: number }
   | { type: 'ageUp'; building: number }
   | { type: 'research'; building: number; tech: string }
-  | { type: 'attack'; units: number[]; target: number; building: boolean }
+  | { type: 'attack'; units: number[]; target: number; building: boolean; confirm?: boolean }
+  | { type: 'proposePact'; to: number }
+  | { type: 'answerPact'; from: number; accept: boolean }
+  | { type: 'endPact'; other: number }
+  | { type: 'gift'; to: number; kind: ResourceKind; amount: number }
   | { type: 'attackMove'; units: number[]; x: number; y: number }
   | { type: 'explore'; units: number[] };
 
-export interface Result { ok: boolean; reason?: string }
+export interface Result { ok: boolean; reason?: string; needsConfirm?: boolean }
 const OK: Result = { ok: true };
 const fail = (reason: string): Result => ({ ok: false, reason });
 
@@ -39,6 +43,8 @@ function own(s: Game, player: number, ids: number[]): Unit[] {
   }
   return out;
 }
+
+const validPlayer = (s: Game, id: unknown): id is number => Number.isInteger(id) && (id as number) >= 0 && (id as number) < s.players.length;
 
 /** Number of distinct finished Age I building types (besides the Ana Merkez) a player owns. */
 export function agePrereqCount(s: Game, player: number): number {
@@ -119,13 +125,16 @@ export function issue(s: Game, player: number, cmd: Command): Result {
       const fighters = own(s, player, cmd.units).filter(isFighter);
       if (fighters.length === 0) return fail('Saldırabilecek birim seçili değil');
       if (targetOwner >= 0) {
-        const allowed = mayAttack(s, player, targetOwner);
+        const allowed = openHostilities(s, player, targetOwner, cmd.confirm === true);
         if (!allowed.ok) return allowed;
-        declareWar(s, player, targetOwner);
       }
       for (const u of fighters) setOrder(u, { kind: 'attack', target: cmd.target, building: cmd.building });
       return OK;
     }
+    case 'proposePact': return validPlayer(s, cmd.to) ? proposePact(s, player, cmd.to) : fail('Geçersiz taraf');
+    case 'answerPact': return validPlayer(s, cmd.from) ? answerOffer(s, player, cmd.from, cmd.accept) : fail('Geçersiz taraf');
+    case 'endPact': return validPlayer(s, cmd.other) ? endPact(s, player, cmd.other) : fail('Geçersiz taraf');
+    case 'gift': return validPlayer(s, cmd.to) ? gift(s, player, cmd.to, cmd.kind, cmd.amount) : fail('Geçersiz taraf');
     case 'attackMove': {
       for (const u of own(s, player, cmd.units))
         setOrder(u, isFighter(u) ? { kind: 'attackMove', x: cmd.x, y: cmd.y } : { kind: 'move', x: cmd.x, y: cmd.y });

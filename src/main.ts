@@ -14,9 +14,9 @@ function start(race: RaceId): void {
   const game = createGame({
     seed,
     players: [
-      { race, isAI: false },
-      { race: 'sancak', isAI: true, name: 'Sancaklılar (Tüccar)' },
-      { race: 'kul', isAI: true, name: 'Külboyları (Yayılmacı)' },
+      { race, isAI: false, name: `Sen (${RACE_BLURB[race].title})` },
+      { race: 'sancak', isAI: true, personality: 'trader', name: 'Sancaklılar (Tüccar)' },
+      { race: 'kul', isAI: true, personality: 'expander', name: 'Külboyları (Yayılmacı)' },
     ],
   });
   const phaser = new Phaser.Game({
@@ -31,7 +31,7 @@ function start(race: RaceId): void {
 const menu = document.getElementById('menu')!;
 menu.innerHTML = `<h1>Boylar: Kadim Miras</h1><div>Halkını seç</div><div class="races">${
   (Object.keys(RACE_BLURB) as RaceId[]).map((r) => `<button class="race" data-race="${r}"><b>${RACE_BLURB[r].title}</b>${RACE_BLURB[r].text}</button>`).join('')
-}</div><div class="help">Erken prototip. İlk 8 dakika barış: üssünü kur, keşfet, kamp avla. Sonra Kadim Harabe'yi 3 dakika tut ya da rakipleri yen. Yapay zekâ ve diplomasi henüz yok.</div>`;
+}</div><div class="help">Erken prototip. İlk 8 dakika barış: üssünü kur, keşfet, kamp avla. Sonra Kadim Harabe'yi 3 dakika tut ya da rakipleri yen. İki komşun var: barışçıl Tüccar ve saldırgan Yayılmacı. Onlarla savaşabilir ya da pakt yapabilirsin.</div>`;
 menu.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest('[data-race]') as HTMLElement | null;
   if (el) start(el.dataset.race as RaceId);

@@ -2,7 +2,7 @@
 
 [GDD](GDD.md) 6.3'teki ölçüt: yapay zekâ–yapay zekâ simülasyonunda Sancaklılar–Külboyları kazanma oranı **%45–55**.
 
-**Sonuç: iki eşleşme de bağımsız ölçümde hedef aralığında.** Ayarda hiç kullanılmamış dört tohum kümesinde (eşleşme başına 1200 maç) Külboyları Yayılmacı aynasının %52,2'sini, Tüccar aynasının %48,4'ünü kazanıyor. Kişilikler arasındaki dengesizlik (Tüccar baskın) ise sürüyor.
+**Sonuç: Tüccar aynası hedefte; Yayılmacı aynası hedefin içinde ama üst sınırda.** Ayarda hiç kullanılmamış yedi tohum kümesinde (eşleşme başına 2100 maç) Külboyları Yayılmacı aynasının %53,4'ünü (güven aralığı %51,3–55,6), Tüccar aynasının %49,3'ünü (%47,1–51,4) kazanıyor. Yani Külboyları savaşla biten maçlarda hâlâ hafif önde. Kişilikler arasındaki dengesizlik (Tüccar baskın) ise sürüyor.
 
 ## Ölçüm
 
@@ -14,9 +14,13 @@
 | 81000 | %50 (±6) | %48 (±6) |
 | 92000 | %53 (±6) | %50 (±6) |
 | 104000 | %54 (±6) | %47 (±6) |
-| **Dördü birlikte (1200 maç)** | **%52,2 (±2,8)** | **%48,4 (±2,8)** |
+| Dördü birlikte (1200 maç) | %52,2 (±2,8) | %48,4 (±2,8) |
+| 250000 (inceleme) | %58 (±6) | %50 (±6) |
+| 333000 (inceleme) | %53 (±6) | %51 (±6) |
+| 417000 (inceleme) | %55 (±6) | %50 (±6) |
+| **Yedisi birlikte (2100 maç)** | **%53,4 (%51,3–55,6)** | **%49,3 (%47,1–51,4)** |
 
-Güven aralıkları (%49,4–55,0 ve %45,6–51,2) hedefin içinde kalıyor; Yayılmacı aynasının üst ucu tam sınırda.
+İlk dört küme tek başına iki aynayı da aralığın içinde gösteriyordu. Bağımsız incelemenin eklediği üç küme Yayılmacı aynasını yukarı çekti: yedi kümenin toplamında nokta tahmini (%53,4) aralığın içinde, ama güven aralığı %55'i aşıyor ve %50'yi dışarıda bırakıyor. Tüccar aynası her iki ölçümde de rahatça içeride.
 
 Hangi tohumların ne için kullanıldığı önemli, çünkü bu rapor daha önce iki kez fazla iyimser çıktı:
 
@@ -24,9 +28,9 @@ Hangi tohumların ne için kullanıldığı önemli, çünkü bu rapor daha önc
 - **Son kervan seçimi:** 5000, 9000, 20000, 31000, 47000 ve 63000 kümelerinde kervan 5, 3 ve 2 karşılaştırıldı. Kervan 5 ile Tüccar aynası 1800 maçta %46,6 (±2,3) ile alt sınırdaydı ve bir kümede %39'a iniyordu; 3 ile altı kümenin ortalaması %49,7 oldu. Bu altı küme seçimde kullanıldığı için doğrulama sayılmaz.
 - **Doğrulama:** yukarıdaki dört küme; seçimden sonra, tek seferde ölçüldü.
 
-Tek tek kümeler %44 ile %56 arasında oynuyor (300 maçta beklenen dalgalanma). Tek bir kümeye bakıp karar vermeyin.
+Tek tek kümeler %44 ile %58 arasında oynuyor (300 maçta beklenen dalgalanma). Tek bir kümeye bakıp karar vermeyin.
 
-Yayılmacı aynasında ilk koltuk bazı kümelerde %57–58 kazanıyor. Oturma sırası dönüşümlü olduğu için halk karşılaştırmasını etkilemez, ama bir koltuk avantajına işaret eder. Hiçbir maç 60 dakikada sonuçsuz kalmadı.
+Yayılmacı aynasında ilk koltuk yedi kümenin altısında %58–62 kazanıyor (ortalama ~%60). Oturma sırası dönüşümlü olduğu için halk karşılaştırmasını etkilemez, ama bir koltuk avantajına işaret eder. Hiçbir maç 60 dakikada sonuçsuz kalmadı.
 
 ### Üçlü diziliş (MVP'deki gibi)
 
@@ -45,7 +49,7 @@ Sabit bir Tüccar (Sancaklılar), sabit bir Yayılmacı (Külboyları) ve oyuncu
 
 ## Ne öğrenildi
 
-Aşağıdaki ölçümler `scripts/tune.ts` ile alındı; bu betik veri dosyalarını değiştirmeden geçici değerlerle iki aynayı oynatır. Sayılar ayar tohumlarındandır (taban 1000, 100–200 maç), yani ±7–10 puan belirsizlik taşır. 1–4. maddeler bağımsız incelemede yeniden üretildi; değerler "Yayılmacı aynası / Tüccar aynası" sırasıyla Külboyları'nın oranıdır.
+Aşağıdaki ölçümler `scripts/tune.ts` ile alındı; bu betik veri dosyalarını değiştirmeden geçici değerlerle iki aynayı oynatır. Sayılar ayar tohumlarındandır (taban 1000, 100–200 maç), yani ±7–10 puan belirsizlik taşır. 1–5. maddeler bağımsız incelemede yeniden üretildi; değerler "Yayılmacı aynası / Tüccar aynası" sırasıyla Külboyları'nın oranıdır.
 
 1. **Ölçüm düzeneği sağlam.** İki halkın tüm özellikleri kapatılınca sonuç %50 / %54:
    `npx tsx scripts/tune.ts '{"kulCost":1,"kulTrain":1,"farm":1,"cavalry":1,"RACES.kul.loot":false,"RACES.kul.buildingHp":1,"RACES.kul.techCost":1,"RACES.sancak.caravan":false,"RACES.sancak.gather.crystal":1}' 100`
@@ -81,9 +85,9 @@ Faz 5'te yapay zekâda değişenler (`src/sim/ai.ts`, `src/data/config.json`):
 
 ## Açık işler
 
-1. **Tüccar kişiliği üçlü maçlarda baskın, Yayılmacı zayıf.** Sabit Tüccar %44, sabit Yayılmacı %15 kazanıyor ve maçların %88'i Harabe ile bitiyor. Yayılmacı bir komşusuyla uğraşırken Tüccar Harabe'yi alıyor. Denenebilecekler: Harabe tutma süresini uzatmak, fesih bildirimini kısaltmak, Yayılmacı'nın Harabe sahibini öncelikli hedef seçmesi. Tüccar'ı daha temkinli yapmak (20 askerle gitmek) denendi ve işe yaramadı.
-2. **Halk dengesi kırılgan.** Sonuç hedefin içinde, ama birim indirimi ve kervan gibi değerlere çok hassas (yukarıdaki 4. ve 5. maddeler) ve Yayılmacı aynasının güven aralığı üst sınıra dayanıyor. Yapay zekâda ya da kurallarda yapılacak her değişiklikten sonra, yeni tohum kümeleriyle yeniden ölçülmeli.
-3. **Koltuk avantajı.** Yayılmacı aynasında ilk koltuk %57–58 kazanıyor; nedeni araştırılmadı.
+1. **Tüccar kişiliği üçlü maçlarda baskın, Yayılmacı zayıf.** Sabit Tüccar %46, sabit Yayılmacı %16 kazanıyor ve maçların %89'u Harabe ile bitiyor. Yayılmacı bir komşusuyla uğraşırken Tüccar Harabe'yi alıyor. Denenebilecekler: Harabe tutma süresini uzatmak, fesih bildirimini kısaltmak, Yayılmacı'nın Harabe sahibini öncelikli hedef seçmesi. Tüccar'ı daha temkinli yapmak (20 askerle gitmek) denendi ve işe yaramadı.
+2. **Yayılmacı aynası üst sınırda ve denge kırılgan.** Külboyları savaşla biten maçlarda %53,4 ile hafif önde; bir sonraki adım kamp ganimetini biraz daha kısmak (0,4 → ~0,35) ve yeni tohumlarda doğrulamak olabilir. Sonuç birim indirimi ve kervan gibi değerlere çok hassas (yukarıdaki 4. ve 5. maddeler). Yapay zekâda ya da kurallarda yapılacak her değişiklikten sonra, yeni tohum kümeleriyle yeniden ölçülmeli.
+3. **Koltuk avantajı.** Yayılmacı aynasında ilk koltuk ~%60 kazanıyor; nedeni araştırılmadı (harita yerleşimi ya da işlem sırası olabilir). Bir insan oyuncu her zaman ilk koltukta oturduğu için önemli.
 4. **Maçlar kısa.** Ortalama ~15 dakika; 8 dakikası barış.
 5. **Yapay zekâ keşif yapmadan düşman binalarının yerini ve ordu gücünü biliyor.**
 6. **İnsan oyuncuyla ölçüm yok.** Buradaki tüm sayılar yapay zekâ–yapay zekâ maçlarından gelir. GDD 6.3'teki diğer ölçütler çocuklarla oyun testi gerektirir ve yapılmadı.

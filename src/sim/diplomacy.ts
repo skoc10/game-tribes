@@ -34,10 +34,12 @@ export const coalitionAgainst = (s: Game, p: number): boolean => s.time < s.dipl
 /** Every change comes with its reason, shown in the "Neden?" log. */
 export function addRelation(s: Game, a: number, b: number, delta: number, why: string): void {
   if (a === b || delta === 0) return;
-  const v = clamp(s.diplo.relation[a][b] + delta, -100, 100);
+  const before = s.diplo.relation[a][b];
+  const v = clamp(before + delta, -100, 100);
+  if (v === before) return;
   s.diplo.relation[a][b] = s.diplo.relation[b][a] = v;
-  log(s, a, 'why', `${s.players[b].name} ile İlişki ${signed(delta)} (şimdi ${v}) — ${why}`);
-  log(s, b, 'why', `${s.players[a].name} ile İlişki ${signed(delta)} (şimdi ${v}) — ${why}`);
+  log(s, a, 'why', `${s.players[b].name} ile İlişki ${signed(v - before)} (şimdi ${v}) — ${why}`);
+  log(s, b, 'why', `${s.players[a].name} ile İlişki ${signed(v - before)} (şimdi ${v}) — ${why}`);
 }
 
 export function addTrust(s: Game, p: number, delta: number, why: string): void {
@@ -45,7 +47,8 @@ export function addTrust(s: Game, p: number, delta: number, why: string): void {
   const v = clamp(before + delta, 0, 100);
   if (v === before) return;
   s.diplo.trust[p] = v;
-  log(s, p, 'why', `Güvenilirlik ${signed(delta)} (şimdi ${v}) — ${why}`);
+  log(s, p, 'why', `Güvenilirlik ${signed(v - before)} (şimdi ${v}) — ${why}`);
+  if (before >= D.coalitionTrust && v < D.coalitionTrust) formCoalition(s, p);
 }
 
 /** Total cost of a player's soldiers: the yardstick the AI uses to compare armies. */
@@ -125,6 +128,13 @@ export function answerOffer(s: Game, to: number, from: number, accept: boolean):
   if (!accept) return { ok: true };
   const allowed = pactAllowed(s, from, to);
   if (!allowed.ok) return allowed;
+  // Things may have changed since the offer was made; the AI must still want it.
+  // Offers made to close ranks against a common enemy stand regardless of temperament.
+  const closingRanks = s.players.some((p) => p.id !== to && p.id !== from && coalitionAgainst(s, p.id));
+  if (s.players[from].isAI && !closingRanks) {
+    const still = aiAccepts(s, from, to);
+    if (!still.ok) return { ok: false, reason: `${s.players[from].name} teklifini geri çekti — ${still.reason}` };
+  }
   makePact(s, from, to);
   return { ok: true };
 }
@@ -134,7 +144,8 @@ export function endPact(s: Game, by: number, other: number): Answer {
   const pact = pactOf(s, by, other);
   if (!pact) return { ok: false, reason: 'Aranızda pakt yok' };
   if (pact.endsAt >= 0) return { ok: false, reason: 'Fesih zaten bildirildi' };
-  pact.endsAt = s.time + D.noticeSeconds;
+  // Never later than the pact's own end, so notice cannot be turned into a "kept to the end" bonus.
+  pact.endsAt = Math.min(s.time + D.noticeSeconds, pact.until);
   pact.endedBy = by;
   addTrust(s, by, -D.noticePenalty, `${s.players[other].name} ile paktı önceden bildirerek bitirdin.`);
   log(s, other, 'pact', `${s.players[by].name} paktı ${D.noticeSeconds} saniye sonra bitireceğini bildirdi.`);
@@ -142,27 +153,36 @@ export function endPact(s: Game, by: number, other: number): Answer {
   return { ok: true };
 }
 
+/** Once a player's trust falls below the threshold, the others close ranks against them for a while. */
+function formCoalition(s: Game, target: number): void {
+  s.diplo.coalitionUntil[target] = s.time + D.coalitionSeconds;
+  const name = s.players[target].name;
+  for (const p of s.players) if (p.alive) log(s, p.id, 'why', `${name} artık güvenilmez (Güvenilirlik ${s.diplo.trust[target]}): diğer halklar ona karşı birleşiyor.`);
+  const rest = others(s, target);
+  for (const a of rest) for (const b of rest) {
+    if (a.id >= b.id || isTraitor(s, a.id) || isTraitor(s, b.id)) continue;
+    // A common enemy brings the others close enough for a pact.
+    const gap = D.pactRelation - relation(s, a.id, b.id);
+    if (gap > 0) addRelation(s, a.id, b.id, gap, `${name} ortak düşmanınız oldu.`);
+    if (a.isAI && b.isAI) makePact(s, a.id, b.id);
+    else if (a.isAI !== b.isAI && !pactOf(s, a.id, b.id)) {
+      // A human is only ever offered a pact, never signed up to one.
+      const [ai, human] = a.isAI ? [a.id, b.id] : [b.id, a.id];
+      if (!s.diplo.offers.some((o) => o.from === ai && o.to === human)) s.diplo.offers.push({ from: ai, to: human, expires: s.time + D.offerSeconds });
+      log(s, human, 'offer', `${s.players[ai].name} Saldırmazlık Paktı teklif ediyor.`);
+    }
+  }
+}
+
 /** Attacking a pact partner without notice: a lasting cost, and everyone hears about it. */
 export function betray(s: Game, traitor: number, victim: number): void {
   dropPact(s, traitor, victim);
   const name = s.players[traitor].name;
-  addTrust(s, traitor, -D.betrayalTrust, `${s.players[victim].name} ile paktın varken haber vermeden saldırdın.`);
+  s.diplo.traitorUntil[traitor] = s.time + D.traitorSeconds;
   addRelation(s, traitor, victim, -D.betrayalVictim, `${name} paktı çiğnedi.`);
   for (const o of others(s, traitor, victim)) addRelation(s, traitor, o.id, -D.betrayalOthers, `${name} bir paktı çiğnedi; herkes bunu duydu.`);
-  s.diplo.traitorUntil[traitor] = s.time + D.traitorSeconds;
   for (const o of others(s, traitor)) log(s, o.id, 'betrayal', `${name} bir paktı çiğnedi ve hain damgası yedi.`);
-  if (s.diplo.trust[traitor] >= D.coalitionTrust) return;
-  s.diplo.coalitionUntil[traitor] = s.time + D.coalitionSeconds;
-  const rest = others(s, traitor);
-  for (const p of s.players) if (p.alive) log(s, p.id, 'why', `${name} artık güvenilmez (Güvenilirlik ${s.diplo.trust[traitor]}): diğer halklar ona karşı birleşiyor.`);
-  for (const a of rest) for (const b of rest) {
-    if (a.id >= b.id || isTraitor(s, a.id) || isTraitor(s, b.id)) continue;
-    if (a.isAI && b.isAI) makePact(s, a.id, b.id);
-    else if (!pactOf(s, a.id, b.id)) {
-      const [ai, human] = a.isAI ? [a.id, b.id] : [b.id, a.id];
-      if (s.players[ai].isAI) s.diplo.offers.push({ from: ai, to: human, expires: s.time + D.offerSeconds });
-    }
-  }
+  addTrust(s, traitor, -D.betrayalTrust, `${s.players[victim].name} ile paktın varken haber vermeden saldırdın.`);
 }
 
 /** Called when a attacks b. Returns whether the attack may go ahead and applies its diplomatic cost. */
@@ -186,10 +206,11 @@ export function openHostilities(s: Game, a: number, b: number, confirmed: boolea
 export function gift(s: Game, from: number, to: number, kind: ResourceKind, amount: number): Answer {
   const p = s.players[from], q = s.players[to];
   if (!q || !q.alive || from === to) return { ok: false, reason: 'Geçersiz taraf' };
-  if (!KINDS.includes(kind) || !(amount > 0)) return { ok: false, reason: 'Geçersiz hediye' };
+  if (!KINDS.includes(kind) || !Number.isInteger(amount) || amount < D.giftPerRelation) return { ok: false, reason: `Hediye en az ${D.giftPerRelation} olmalı` };
   if (p.res[kind] < amount) return { ok: false, reason: 'Yeterli kaynak yok' };
   p.res[kind] -= amount;
   q.res[kind] += amount;
+  // İlişki is one shared number per pair, so the cap is per pair too: both directions use one window.
   const w = s.diplo.giftWindow[from][to];
   if (s.time - w.start >= D.giftWindow) { w.start = s.time; w.relation = 0; }
   const gain = Math.min(Math.floor(amount / D.giftPerRelation), D.giftRelationMax - w.relation);
@@ -217,7 +238,7 @@ export function stepDiplomacy(s: Game): void {
       // Sancak Kervanı: steady crystal for every pact in force.
       if (RACES[a.race].caravan) a.res.crystal += (D.caravanPerMinute / 60) * DT;
       if (a.id > b.id) continue;
-      if (pact.endsAt >= 0 && s.time >= pact.endsAt) {
+      if (pact.endsAt >= 0 && s.time >= pact.endsAt - 1e-9) {
         dropPact(s, a.id, b.id);
         for (const [x, y] of [[a.id, b.id], [b.id, a.id]]) log(s, x, 'pact', `${s.players[y].name} ile pakt sona erdi.`);
       } else if (s.time >= pact.until) {

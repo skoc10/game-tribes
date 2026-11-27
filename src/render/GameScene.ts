@@ -26,6 +26,7 @@ export class GameScene extends Phaser.Scene {
   hud!: Hud;
   /** A command waiting for the player to confirm a betrayal. */
   private pending: Command | null = null;
+  private pausedBefore = false;
 
   private acc = 0;
   private drawnMap = -1;
@@ -59,7 +60,7 @@ export class GameScene extends Phaser.Scene {
 
     this.input.mouse?.disableContextMenu();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>;
-    this.input.keyboard!.on('keydown-SPACE', () => (this.paused = !this.paused));
+    this.input.keyboard!.on('keydown-SPACE', () => { if (!this.pending) this.paused = !this.paused; });
     this.input.keyboard!.on('keydown-ESC', () => { this.placing = null; this.selUnits = []; this.selBuilding = 0; });
     this.input.keyboard!.on('keydown-PERIOD', () => this.selectIdle());
     this.input.keyboard!.on('keydown-Q', () => this.selectArmy());
@@ -79,7 +80,7 @@ export class GameScene extends Phaser.Scene {
   /** Sends a command for the local player and shows the reason if it is refused. */
   protected cmd(c: Command): boolean {
     const r = issue(this.s, this.me, c);
-    if (!r.ok && r.needsConfirm && r.reason) { this.pending = c; this.paused = true; this.hud.confirm(r.reason); }
+    if (!r.ok && r.needsConfirm && r.reason) { this.pending = c; this.pausedBefore = this.paused; this.paused = true; this.hud.confirm(r.reason); }
     else if (!r.ok && r.reason) this.hud.toast(r.reason);
     return r.ok;
   }
@@ -109,7 +110,7 @@ export class GameScene extends Phaser.Scene {
       case 'confirmNo': {
         const c = this.pending;
         this.pending = null;
-        this.paused = false;
+        this.paused = this.pausedBefore;
         document.getElementById('confirm')?.remove();
         if (action === 'confirmYes' && c && c.type === 'attack') this.cmd({ ...c, confirm: true });
         break;
@@ -268,7 +269,8 @@ export class GameScene extends Phaser.Scene {
       const e = events[this.seenEvents];
       if (e.player !== this.me) continue;
       if (e.kind === 'loot' || e.kind === 'level') this.floatText(e.text, e.x ?? 0, e.y ?? 0, e.kind === 'loot' ? '#ffd24a' : '#9be7ff');
-      else if (e.kind !== 'why') this.hud.toast(e.text);
+      // Reasons live in the diplomacy panel; with the panel closed they still have to reach the player.
+      else if (e.kind !== 'why' || !this.showDiplomacy) this.hud.toast(e.text);
     }
   }
 

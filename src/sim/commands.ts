@@ -44,6 +44,8 @@ function own(s: Game, player: number, ids: number[]): Unit[] {
   return out;
 }
 
+const validPlayer = (s: Game, id: unknown): id is number => Number.isInteger(id) && (id as number) >= 0 && (id as number) < s.players.length;
+
 /** Number of distinct finished Age I building types (besides the Ana Merkez) a player owns. */
 export function agePrereqCount(s: Game, player: number): number {
   const types = new Set<string>();
@@ -129,10 +131,10 @@ export function issue(s: Game, player: number, cmd: Command): Result {
       for (const u of fighters) setOrder(u, { kind: 'attack', target: cmd.target, building: cmd.building });
       return OK;
     }
-    case 'proposePact': return s.players[cmd.to] ? proposePact(s, player, cmd.to) : fail('Geçersiz taraf');
-    case 'answerPact': return answerOffer(s, player, cmd.from, cmd.accept);
-    case 'endPact': return s.players[cmd.other] ? endPact(s, player, cmd.other) : fail('Geçersiz taraf');
-    case 'gift': return s.players[cmd.to] ? gift(s, player, cmd.to, cmd.kind, cmd.amount) : fail('Geçersiz taraf');
+    case 'proposePact': return validPlayer(s, cmd.to) ? proposePact(s, player, cmd.to) : fail('Geçersiz taraf');
+    case 'answerPact': return validPlayer(s, cmd.from) ? answerOffer(s, player, cmd.from, cmd.accept) : fail('Geçersiz taraf');
+    case 'endPact': return validPlayer(s, cmd.other) ? endPact(s, player, cmd.other) : fail('Geçersiz taraf');
+    case 'gift': return validPlayer(s, cmd.to) ? gift(s, player, cmd.to, cmd.kind, cmd.amount) : fail('Geçersiz taraf');
     case 'attackMove': {
       for (const u of own(s, player, cmd.units))
         setOrder(u, isFighter(u) ? { kind: 'attackMove', x: cmd.x, y: cmd.y } : { kind: 'move', x: cmd.x, y: cmd.y });

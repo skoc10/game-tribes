@@ -1,7 +1,7 @@
 import { clsOf, isFighter } from './combat';
 import { agePrereqCount, issue } from './commands';
 import { BUILDINGS, CFG, TECHS, canAfford, techCost, unitCost } from './data';
-import { coalitionAgainst, endPact, openHostilities, pactAllowed, pactOf, power, proposePact } from './diplomacy';
+import { aiAccepts, coalitionAgainst, endPact, openHostilities, pactAllowed, pactOf, power, proposePact } from './diplomacy';
 import { isVisible } from './fog';
 import { walkable } from './path';
 import { inPeace } from './relations';
@@ -102,6 +102,13 @@ function economy(v: View): void {
     if (mover) assign(v, mover, want);
   }
 
+  // Pick up any construction left without a builder, or it would block everything that waits on it.
+  for (const b of v.mine) {
+    if (b.progress >= 1 || v.villagers.some((u) => u.order.kind === 'build' && u.order.building === b.id)) continue;
+    const helper = v.villagers.find((u) => u.order.kind !== 'build' && jobOf(u) !== 'crystal') ?? v.villagers[0];
+    if (helper) issue(s, me, { type: 'assist', units: [helper.id], building: b.id });
+  }
+
   const cap = popCap(s, me);
   if (cap < CFG.popMax && cap - popUsed(s, me) <= 3 && !v.mine.some((b) => b.type === 'house' && b.progress < 1)) build(v, 'house');
   if (!has(v, 'barracks') && v.villagers.length >= 7) build(v, 'barracks');
@@ -154,7 +161,8 @@ function command(v: View): void {
     && dist(u.x, u.y, base.x, base.y) < A.defendRadius && isVisible(s, me, u.x, u.y));
   if (raider) return sendArmy(v, raider.x, raider.y, false);
 
-  if (st.goal === 'attack' && st.enemy >= 0 && s.players[st.enemy].alive) {
+  // War is only ever declared in strategy(); marching orders follow it.
+  if (st.goal === 'attack' && st.enemy >= 0 && s.players[st.enemy].alive && s.war[me][st.enemy] && !pactOf(s, me, st.enemy)) {
     if (v.soldiers.length < A.retreatArmy) { st.goal = 'none'; return sendArmy(v, base.x + 0.5, base.y + 4.5, false); }
     const targets = s.buildings.filter((b) => b.owner === st.enemy);
     const tc = targets.find((b) => b.type === 'towncenter') ?? targets[0];
@@ -199,6 +207,8 @@ function offer(s: Game, me: number, to: number): void {
   if (to === st.enemy && st.goal !== 'none') return;
   if (s.relic.owner === to) return;
   if (s.time - st.lastOffer[to] < 60 || !pactAllowed(s, me, to).ok) return;
+  // Never offer what it would itself refuse if asked.
+  if (!aiAccepts(s, me, to).ok) return;
   st.lastOffer[to] = s.time;
   proposePact(s, me, to);
 }
@@ -207,6 +217,9 @@ function strategy(v: View): void {
   const { s, me } = v, st = s.ai[me], p = s.players[me];
   const rivals = s.players.filter((o) => o.alive && o.id !== me);
   if (st.enemy >= 0 && !s.players[st.enemy].alive) { st.enemy = -1; st.goal = 'none'; }
+  // A pact with the current target calls the march off.
+  const truce = st.enemy >= 0 ? pactOf(s, me, st.enemy) : null;
+  if (truce && truce.endsAt < 0) { st.enemy = -1; st.goal = 'none'; }
 
   if (p.personality === 'trader') for (const o of rivals) offer(s, me, o.id);
   if (inPeace(s)) return;
@@ -228,6 +241,7 @@ function strategy(v: View): void {
 
   if (p.personality === 'trader') {
     // The trader wants the relic, and fights only those already at war with it.
+    st.enemy = -1;
     st.goal = v.soldiers.length >= A.relicArmy * st.nerve || holder === me ? 'relic' : 'none';
     return;
   }

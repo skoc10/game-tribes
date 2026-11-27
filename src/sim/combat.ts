@@ -1,6 +1,5 @@
 import { BUILDINGS, CFG, KINDS, RACES, UNITS, unitCost } from './data';
-import { goTo, nearRect, type Travel } from './move';
-import { walkable } from './path';
+import { goTo, type Travel } from './move';
 import { hostile, inPeace } from './relations';
 import { buildingById, log, removeBuilding, unitById } from './state';
 import type { Building, Cost, Game, Unit } from './types';
@@ -97,18 +96,13 @@ function afterArmor(s: Game, t: Unit, damage: number): number {
   return Math.max(1, damage - armor);
 }
 
-/**
- * Tile adjacency does not guarantee weapon reach, because units stand anywhere within a tile.
- * Once the path is done, close the remaining gap in a straight line.
- */
-function approach(s: Game, u: Unit, state: Travel, x: number, y: number): boolean {
+/** Slack between the pathing goal and true weapon reach, so a unit that arrives can always strike. */
+const REACH_MARGIN = 0.2;
+
+/** After walking: if the target is still out of reach (it moved), plan again next tick. */
+function settle(u: Unit, state: Travel): boolean {
   if (state === 'blocked') return false;
-  if (state === 'arrived') {
-    const dx = x - u.x, dy = y - u.y, d = Math.hypot(dx, dy) || 1;
-    const stepLen = Math.min(d, UNITS[u.type].speed / CFG.tickRate);
-    const nx = u.x + (dx / d) * stepLen, ny = u.y + (dy / d) * stepLen;
-    if (walkable(s, Math.floor(nx), Math.floor(ny))) { u.x = nx; u.y = ny; }
-  }
+  if (state === 'arrived') { u.path = null; u.pathKey = ''; }
   return true;
 }
 
@@ -123,14 +117,15 @@ export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
       t.hp -= afterArmor(s, t, damageOf(s, u) * multiplier(clsOf(u), clsOf(t)));
       if (t.hp <= 0) killUnit(s, t, u.owner);
       // A fighter with nothing better to do turns on whoever is hitting it, even from beyond its own aggro range.
-      else if (!t.target && t.owner >= 0 && isFighter(t) && (t.order.kind === 'idle' || t.order.kind === 'attackMove')) t.target = u.id;
+      // Beasts do the same, so a camp cannot be shot down from outside its aggro circle.
+      else if (!t.target && isFighter(t) && (t.owner < 0 || t.order.kind === 'idle' || t.order.kind === 'attackMove')) t.target = u.id;
     }
     return true;
   }
-  const tx = Math.floor(t.x), ty = Math.floor(t.y);
-  const r = Math.max(1, Math.floor(range));
-  const goal = (x: number, y: number) => Math.max(Math.abs(x - tx), Math.abs(y - ty)) <= r;
-  return approach(s, u, goTo(s, u, `a${t.id}:${tx},${ty}`, goal, tx, ty), t.x, t.y);
+  // The goal is the real reach test from the tile centre, so arriving means being able to hit.
+  const tx = Math.floor(t.x), ty = Math.floor(t.y), px = t.x, py = t.y, near = (reach - REACH_MARGIN) ** 2;
+  const goal = (x: number, y: number) => (x + 0.5 - px) ** 2 + (y + 0.5 - py) ** 2 <= near;
+  return settle(u, goTo(s, u, `a${t.id}:${tx},${ty}`, goal, tx, ty));
 }
 
 export function engageBuilding(s: Game, u: Unit, b: Building): boolean {
@@ -147,8 +142,12 @@ export function engageBuilding(s: Game, u: Unit, b: Building): boolean {
     }
     return true;
   }
-  const goal = nearRect(b.tx, b.ty, size, Math.max(1, Math.floor(range)));
-  return approach(s, u, goTo(s, u, `ab${b.id}`, goal, b.tx + size / 2, b.ty + size / 2), b.tx + size / 2, b.ty + size / 2);
+  const near = (reach - REACH_MARGIN) ** 2;
+  const goal = (x: number, y: number) => {
+    const gx = Math.max(b.tx - (x + 0.5), 0, x + 0.5 - (b.tx + size)), gy = Math.max(b.ty - (y + 0.5), 0, y + 0.5 - (b.ty + size));
+    return gx * gx + gy * gy <= near;
+  };
+  return settle(u, goTo(s, u, `ab${b.id}`, goal, b.tx + size / 2, b.ty + size / 2));
 }
 
 function nearestHostile(s: Game, u: Unit, radius: number): Unit | undefined {

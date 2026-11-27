@@ -181,7 +181,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   protected canInspect(b: Building): boolean {
-    return b.owner === this.me || isExplored(this.s, this.me, b.tx, b.ty);
+    const half = BUILDINGS[b.type].size / 2;
+    return b.owner === this.me || isExplored(this.s, this.me, b.tx + half, b.ty + half);
   }
 
   /** Context command for the current selection at a world position (in tiles). */
@@ -196,7 +197,10 @@ export class GameScene extends Phaser.Scene {
     if (this.selUnits.length === 0) return;
     const enemy = this.unitAt(x, y, (o) => o.owner !== this.me && this.visibleAt(o.x, o.y));
     const b = this.buildingAt(x, y);
-    if (enemy) {
+    const canFight = this.selUnits.some((id) => { const u = unitById(s, id); return !!u && isFighter(u); });
+    if (!canFight && (enemy || (b && b.owner !== this.me))) {
+      this.cmd({ type: 'move', units: this.selUnits, x, y });
+    } else if (enemy) {
       this.cmd({ type: 'attack', units: this.selUnits, target: enemy.id, building: false });
     } else if (b && b.owner !== this.me && this.canInspect(b)) {
       this.cmd({ type: 'attack', units: this.selUnits, target: b.id, building: true });

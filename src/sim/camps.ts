@@ -3,15 +3,24 @@ import { walkable } from './path';
 import { addUnit } from './state';
 import { NEUTRAL, type Game } from './types';
 
-const SPOTS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+/** Offsets at Chebyshev distance r, in a fixed order. */
+const RING = (r: number): number[][] => {
+  const out: number[][] = [];
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) out.push([dx, dy]);
+  return out;
+};
 
 export function spawnCamp(s: Game, index: number): void {
   const camp = s.camps[index];
   const count = CFG.camp.count[camp.tier - 1];
+  // Use the free tiles closest to the camp centre; never spawn inside something.
+  const free: number[][] = [];
+  for (let r = 0; r <= 4 && free.length < count; r++)
+    for (const [dx, dy] of r === 0 ? [[0, 0]] : RING(r)) if (walkable(s, Math.floor(camp.x + dx), Math.floor(camp.y + dy))) free.push([dx, dy]);
+  if (free.length === 0) { camp.respawnAt = s.time + 10; return; }
   for (let i = 0; i < count; i++) {
-    const [dx, dy] = SPOTS[i % SPOTS.length];
-    const ok = walkable(s, Math.floor(camp.x + dx), Math.floor(camp.y + dy));
-    const u = addUnit(s, NEUTRAL, 'beast', camp.x + (ok ? dx : 0), camp.y + (ok ? dy : 0));
+    const [dx, dy] = free[i % free.length];
+    const u = addUnit(s, NEUTRAL, 'beast', camp.x + dx, camp.y + dy);
     u.camp = index;
     u.scale = CFG.camp.scale[camp.tier - 1];
     u.hp = Math.round(u.hp * u.scale);

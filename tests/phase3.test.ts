@@ -32,7 +32,8 @@ describe('peace period', () => {
     s.players[0].heroXp = 5000;
     const camp = s.camps[0];
     hero.x = camp.x + 3; hero.y = camp.y;
-    const army = squad(s, 0, 'cavalry', 12, Math.floor(camp.x) + 2, Math.floor(camp.y) - 5);
+    // A compact block, so the army does not brush against the neighbouring camp.
+    const army = [2, 3, 4].flatMap((dx) => squad(s, 0, 'cavalry', 4, Math.floor(camp.x) + dx, Math.floor(camp.y) - 2));
     issue(s, 0, { type: 'attackMove', units: army.map((u) => u.id), x: camp.x, y: camp.y });
     run(s, 60);
     expect(camp.alive).toBe(0);

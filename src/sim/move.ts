@@ -36,9 +36,3 @@ export function besideRect(tx: number, ty: number, size: number): TileTest {
   return (x, y) => x >= tx - 1 && x <= tx + size && y >= ty - 1 && y <= ty + size
     && !(x >= tx && x < tx + size && y >= ty && y < ty + size);
 }
-
-/** Goal test: a tile within Chebyshev distance r of the rectangle (tx, ty, size). */
-export function nearRect(tx: number, ty: number, size: number, r: number): TileTest {
-  return (x, y) => x >= tx - r && x < tx + size + r && y >= ty - r && y < ty + size + r
-    && !(x >= tx && x < tx + size && y >= ty && y < ty + size);
-}

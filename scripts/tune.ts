@@ -63,4 +63,26 @@ for (const personality of ['expander', 'trader'] as Personality[]) {
   out.push(`${personality}: kul %${Math.round((100 * kul) / matches)} (${(minutes / matches).toFixed(1)} dk)`);
   if (diag) out.push('  güç s/k @dk ' + marks.map((t, k) => `${t}:${Math.round(sum.sancak[k] / (n[k] || 1))}/${Math.round(sum.kul[k] / (n[k] || 1))}`).join('  '));
 }
+// Three-way series as in the MVP: fixed trader, fixed expander, and a third seat cycling through
+// both races and personalities. Reports how the fixed seats do and how matches end.
+{
+  let trader = 0, expander = 0, conquest = 0, minutes = 0;
+  for (let i = 0; i < matches; i++) {
+    const seats: { race: RaceId; personality: Personality }[] = [
+      { race: i % 2 ? 'sancak' : 'kul', personality: i % 4 < 2 ? 'expander' : 'trader' },
+      { race: 'sancak', personality: 'trader' },
+      { race: 'kul', personality: 'expander' },
+    ];
+    const rot = i % 3, order = [...seats.slice(rot), ...seats.slice(0, rot)];
+    const s = createGame({ seed: seedBase + i, players: order.map((p) => ({ ...p, isAI: true })) });
+    while (s.winner < 0 && s.tick < 60 * 60 * CFG.tickRate) step(s);
+    const original = s.winner < 0 ? -1 : (s.winner + rot) % 3;
+    if (original === 1) trader++;
+    if (original === 2) expander++;
+    if (s.winKind === 'conquest') conquest++;
+    minutes += s.time / 60;
+  }
+  const pct = (v: number) => `%${Math.round((100 * v) / matches)}`;
+  out.push(`üçlü: sabit Tüccar ${pct(trader)}, sabit Yayılmacı ${pct(expander)}, fetih ${pct(conquest)} (${(minutes / matches).toFixed(1)} dk)`);
+}
 console.log(`${process.argv[2]} n=${matches} →\n  ${out.join('\n  ')}`);

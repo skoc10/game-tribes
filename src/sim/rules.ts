@@ -49,7 +49,7 @@ function stepRelic(s: Game): void {
     r.progress += DT;
     if (r.progress >= CFG.relic.captureTime) {
       if (r.owner >= 0) addRelation(s, sole, r.owner, -CFG.diplomacy.relicRelation, `${s.players[sole].name} Kadim Harabe'yi elinden aldı.`);
-      r.owner = sole; r.captor = -1; r.progress = 0; r.heldSince = s.time;
+      r.owner = sole; r.captor = -1; r.progress = 0; r.held = 0;
       everyone(s, 'relic', `${s.players[sole].name} Kadim Harabe'yi ele geçirdi. ${CFG.relic.holdToWin / 60} dakika tutarsa kazanır!`);
     }
   } else if (present.size === 0 || sole === r.owner) {
@@ -57,7 +57,11 @@ function stepRelic(s: Game): void {
   }
   if (r.owner >= 0) {
     s.players[r.owner].res.crystal += (CFG.relic.crystalPerMinute / 60) * DT;
-    if (s.time - r.heldSince >= CFG.relic.holdToWin) { s.winner = r.owner; s.winKind = 'relic'; }
+    // The hold only counts while the owner stands guard and no enemy soldier is on the relic
+    // (with guardRelic off, owning it is enough). Holding it pins an army there.
+    r.counting = !CFG.relic.guardRelic || (present.has(r.owner) && ![...present].some((p) => p !== r.owner && s.war[p][r.owner]));
+    if (r.counting) r.held += DT;
+    if (r.held >= CFG.relic.holdToWin) { s.winner = r.owner; s.winKind = 'relic'; }
   }
 }
 
@@ -98,5 +102,5 @@ export function stepRules(s: Game): void {
 
 /** Seconds until the relic holder wins, or -1 if nobody holds it. */
 export function relicCountdown(s: Game): number {
-  return s.relic.owner < 0 ? -1 : Math.max(0, CFG.relic.holdToWin - (s.time - s.relic.heldSince));
+  return s.relic.owner < 0 ? -1 : Math.max(0, CFG.relic.holdToWin - s.relic.held);
 }

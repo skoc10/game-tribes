@@ -164,11 +164,15 @@ export function engageBuilding(s: Game, u: Unit, b: Building): boolean {
 }
 
 function nearestHostile(s: Game, u: Unit, radius: number): Unit | undefined {
-  let best: Unit | undefined, bestD = radius * radius;
+  // Among enemies at the same distance (armies often stand on one spot) pick by a hash of both
+  // ids, not by list order, so the choice favours no seat and spreads fire instead of piling it.
+  let best: Unit | undefined, bestD = radius * radius, bestH = 0;
   for (const o of s.units) {
-    if (!hostile(s, u.owner, o.owner)) continue;
+    if (o.hp <= 0 || !hostile(s, u.owner, o.owner)) continue;
     const d = (o.x - u.x) ** 2 + (o.y - u.y) ** 2;
-    if (d < bestD) { best = o; bestD = d; }
+    if (d > bestD + 1e-9) continue;
+    const h = Math.imul(o.id * 73 + u.id, 2654435761) >>> 0;
+    if (d < bestD - 1e-9 || !best || h > bestH) { best = o; bestD = d; bestH = h; }
   }
   return best;
 }

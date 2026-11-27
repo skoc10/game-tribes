@@ -115,7 +115,8 @@
     "captureTime": 20,
     "holdToWin": 180,
     "crystalPerMinute": 15,
-    "xpBonus": 1.5
+    "xpBonus": 1.5,
+    "guardRelic": true
   },
   "eliminationGrace": 90,
   "techs": {

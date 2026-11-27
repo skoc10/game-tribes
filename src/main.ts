@@ -13,6 +13,8 @@ function start(race: RaceId): void {
   const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
   const game = createGame({
     seed,
+    // A different corner each match, so no start position is always the player's.
+    seatOffset: Math.floor(Math.random() * 3),
     players: [
       { race, isAI: false, name: `Sen (${RACE_BLURB[race].title})` },
       { race: 'sancak', isAI: true, personality: 'trader', name: 'Sancaklılar (Tüccar)' },

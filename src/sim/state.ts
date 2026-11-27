@@ -125,7 +125,7 @@ export function createGame(opts: GameOptions): Game {
     bases: [], center: { x: size / 2, y: size / 2 },
     camps: [], fog: [], fogVersion: 0, war: [],
     peaceEnd: opts.peaceSeconds ?? CFG.peaceSeconds,
-    relic: { x: size / 2, y: size / 2, owner: -1, captor: -1, progress: 0, heldSince: 0 },
+    relic: { x: size / 2, y: size / 2, owner: -1, captor: -1, progress: 0, held: 0, counting: false },
     winner: -1, winKind: '',
     diplo: undefined as unknown as Game['diplo'], ai: [], fallen: [],
   };
@@ -211,14 +211,17 @@ export function exposed(s: Game, tile: number): boolean {
 
 /** Nearest exposed tile of the given terrain within radius of (x, y), or -1. */
 export function nearestNode(s: Game, terrain: number, x: number, y: number, radius: number): number {
-  let best = -1, bestD = Infinity;
+  // Ties between equally near nodes go by a hash of the tile, not by scan order (a screen direction).
+  let best = -1, bestD = Infinity, bestH = 0;
   const fx = Math.floor(x), fy = Math.floor(y);
   for (let ty = Math.max(0, fy - radius); ty <= Math.min(s.h - 1, fy + radius); ty++)
     for (let tx = Math.max(0, fx - radius); tx <= Math.min(s.w - 1, fx + radius); tx++) {
       const i = ty * s.w + tx;
       if (s.terrain[i] !== terrain || s.amount[i] <= 0) continue;
       const d = (tx + 0.5 - x) ** 2 + (ty + 0.5 - y) ** 2;
-      if (d < bestD && exposed(s, i)) { bestD = d; best = i; }
+      if (d > bestD + 1e-9) continue;
+      const h = Math.imul(i + 1, 2654435761) >>> 0;
+      if ((d < bestD - 1e-9 || h > bestH) && exposed(s, i)) { bestD = d; best = i; bestH = h; }
     }
   return best;
 }

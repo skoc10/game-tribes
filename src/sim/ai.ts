@@ -91,7 +91,8 @@ function assign(v: View, u: Unit, kind: ResourceKind): boolean {
     const farm = v.mine.find((b) => b.type === 'farm' && b.progress >= 1 && b.worker === 0);
     if (farm) return issue(s, me, { type: 'farm', units: [u.id], building: farm.id }).ok;
   }
-  const tile = nearestNode(s, TERRAIN[kind], base.x, base.y, kind === 'food' ? 14 : 24);
+  // Measured from the centre of the base tile: measuring from its corner is not the same for mirrored bases.
+  const tile = nearestNode(s, TERRAIN[kind], base.x + 0.5, base.y + 0.5, kind === 'food' ? 14 : 24);
   if (tile >= 0) return issue(s, me, { type: 'gather', units: [u.id], tile }).ok;
   if (kind === 'food' && !v.mine.some((b) => b.type === 'farm' && b.progress < 1)) {
     const site = findSite(v, 'farm');
@@ -177,6 +178,22 @@ function sendArmy(v: View, x: number, y: number, onlyFree = true): void {
   if (ids.length) issue(v.s, v.me, { type: 'attackMove', units: ids, x, y });
 }
 
+/**
+ * Moves the army to a target in groups. Recruits sent one at a time just feed the enemy (and, on the
+ * relic, keep interrupting its timer without ever threatening it), so fresh units wait at the rally
+ * point until enough have gathered; fewer are needed to reinforce a fight already under way.
+ */
+function marchTogether(v: View, x: number, y: number, first: number, reach: number): void {
+  const { s, me, base } = v;
+  const dx = Math.sign(Math.round(s.center.x - base.x)), dy = Math.sign(Math.round(s.center.y - base.y));
+  const rallyX = base.x + dx * 5 + 0.5, rallyY = base.y + dy * 5 + 0.5;
+  const there = v.army.filter((u) => dist(u.x, u.y, x, y) < reach).length;
+  const waiting = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) <= 4);
+  if (waiting.length >= (there > 0 ? A.campReinforce : first)) issue(s, me, { type: 'attackMove', units: waiting.map((u) => u.id), x, y });
+  const stragglers = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) > 4 && dist(u.x, u.y, x, y) >= reach).map((u) => u.id);
+  if (stragglers.length) issue(s, me, { type: 'move', units: stragglers, x: rallyX, y: rallyY });
+}
+
 function command(v: View): void {
   const { s, me, base } = v, st = s.ai[me];
   const scout = s.units.find((u) => u.owner === me && u.type === 'scout');
@@ -184,19 +201,24 @@ function command(v: View): void {
 
   // Defend the base first.
   const raider = s.units.find((u) => u.owner >= 0 && u.owner !== me && s.war[me][u.owner] && isFighter(u)
-    && dist(u.x, u.y, base.x, base.y) < A.defendRadius && isVisible(s, me, u.x, u.y));
+    && dist(u.x, u.y, base.x + 0.5, base.y + 0.5) < A.defendRadius && isVisible(s, me, u.x, u.y));
   if (raider) return sendArmy(v, raider.x, raider.y, false);
 
   // War is only ever declared in strategy(); marching orders follow it.
   if (st.goal === 'attack' && st.enemy >= 0 && s.players[st.enemy].alive && s.war[me][st.enemy] && !pactOf(s, me, st.enemy)) {
-    if (v.soldiers.length < A.retreatArmy) { st.goal = 'none'; return sendArmy(v, base.x + 0.5, base.y + 4.5, false); }
+    if (v.soldiers.length < A.retreatArmy) {
+      st.goal = 'none';
+      const hx = Math.sign(Math.round(s.center.x - base.x)), hy = Math.sign(Math.round(s.center.y - base.y));
+      return sendArmy(v, base.x + hx * 5 + 0.5, base.y + hy * 5 + 0.5, false);
+    }
     const targets = s.buildings.filter((b) => b.owner === st.enemy);
     const tc = targets.find((b) => b.type === 'towncenter') ?? targets[0];
     if (!tc) return;
+    marchTogether(v, tc.tx + 1.5, tc.ty + 1.5, A.campReinforce, 9);
     for (const u of v.army) {
       if (!free(u)) continue;
-      if (dist(u.x, u.y, tc.tx + 1.5, tc.ty + 1.5) > 9) issue(s, me, { type: 'attackMove', units: [u.id], x: tc.tx + 1.5, y: tc.ty + 4.5 });
-      else {
+      if (dist(u.x, u.y, tc.tx + 1.5, tc.ty + 1.5) > 9) continue;
+      {
         let best = tc, bestD = Infinity;
         for (const b of targets) { const d = dist(u.x, u.y, b.tx, b.ty); if (d < bestD) { best = b; bestD = d; } }
         issue(s, me, { type: 'attack', units: [u.id], target: best.id, building: true });
@@ -204,29 +226,17 @@ function command(v: View): void {
     }
     return;
   }
-  if (st.goal === 'relic') return sendArmy(v, s.relic.x, s.relic.y);
+  if (st.goal === 'relic') return marchTogether(v, s.relic.x, s.relic.y, A.campReinforce, CFG.relic.radius + 2);
 
   // Otherwise hunt the nearest camp the army can handle, or wait in front of the base.
   let camp = -1, campD = Infinity;
   s.camps.forEach((c, i) => {
-    const d = dist(c.x, c.y, base.x, base.y);
+    const d = dist(c.x, c.y, base.x + 0.5, base.y + 0.5);
     if (c.alive > 0 && v.army.length >= A.campArmy[c.tier - 1] && d < campD) { camp = i; campD = d; }
   });
+  if (camp >= 0) return marchTogether(v, s.camps[camp].x, s.camps[camp].y, A.campArmy[s.camps[camp].tier - 1], CFG.camp.leash);
   const dx = Math.sign(Math.round(s.center.x - base.x)), dy = Math.sign(Math.round(s.center.y - base.y));
-  const rallyX = base.x + dx * 5 + 0.5, rallyY = base.y + dy * 5 + 0.5;
-  if (camp >= 0) {
-    // Go as one group: recruits sent to a camp one at a time just feed it. Fresh units wait at the
-    // rally point until enough have gathered (fewer are needed to reinforce a fight already under way).
-    const c = s.camps[camp];
-    const fighting = v.army.filter((u) => dist(u.x, u.y, c.x, c.y) < CFG.camp.leash).length;
-    const waiting = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) <= 4);
-    const need = fighting > 0 ? A.campReinforce : A.campArmy[c.tier - 1];
-    if (waiting.length >= need) issue(s, me, { type: 'attackMove', units: waiting.map((u) => u.id), x: c.x, y: c.y });
-    const stragglers = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) > 4 && dist(u.x, u.y, c.x, c.y) >= CFG.camp.leash).map((u) => u.id);
-    if (stragglers.length) issue(s, me, { type: 'move', units: stragglers, x: rallyX, y: rallyY });
-    return;
-  }
-  sendArmy(v, rallyX, rallyY);
+  sendArmy(v, base.x + dx * 5 + 0.5, base.y + dy * 5 + 0.5);
 }
 
 /** Opens hostilities the honest way: a pact partner first gets the notice period. */
@@ -252,14 +262,15 @@ function offer(s: Game, me: number, to: number): void {
 }
 
 /**
- * Armies of two players standing on an unowned relic block each other forever. End it openly:
+ * Armies of two players standing on a relic neither owns block each other forever. End it openly:
  * turn on whoever has the most soldiers there (a pact partner first gets the notice period).
  */
 function breakStandOff(v: View): void {
   const { s, me } = v, st = s.ai[me];
   const seenBefore = st.blocker;
   st.blocker = -1;
-  if (s.relic.owner >= 0) return;
+  // Applies whoever owns the relic: an absent owner's relic can be deadlocked by two visiting armies too.
+  if (s.relic.owner === me) return;
   const near = (u: Unit) => isFighter(u) && dist(u.x, u.y, s.relic.x, s.relic.y) <= CFG.relic.radius;
   if (!v.army.some(near)) return;
   const count = new Map<number, number>();
@@ -297,6 +308,8 @@ function strategy(v: View): void {
     st.enemy = holder;
     declare(s, me, holder);
     st.goal = 'relic';
+    // Others who came for the same relic stand in the way just as much as its owner does.
+    breakStandOff(v);
     return;
   }
 

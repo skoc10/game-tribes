@@ -152,8 +152,10 @@ export interface Relic {
   /** Player currently capturing, -1 if nobody. */
   captor: number;
   progress: number;
-  /** Game time at which the current owner took it. */
-  heldSince: number;
+  /** Seconds the current owner's hold has counted towards victory. */
+  held: number;
+  /** Whether the hold timer is advancing this tick (the owner is on guard and unchallenged). */
+  counting: boolean;
 }
 
 export type Personality = '' | 'trader' | 'expander';

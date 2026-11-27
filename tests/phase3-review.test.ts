@@ -28,13 +28,13 @@ describe('phase 3 review fixes', () => {
     run(s, CFG.relic.captureTime + 1);
     expect(s.relic.owner).toBe(0);
     run(s, 100);
-    s.relic.heldSince = s.time - CFG.relic.holdToWin + 5;
+    s.relic.held = CFG.relic.holdToWin - 5;
     removeBuilding(s, tcOf(s, 0));
     s.players[0].tcLostAt = s.time - CFG.eliminationGrace + 5;
     // Both deadlines fall in the same tick; step once to get there.
     run(s, 0.1);
     s.players[0].tcLostAt = s.time - CFG.eliminationGrace;
-    s.relic.heldSince = s.time - CFG.relic.holdToWin;
+    s.relic.held = CFG.relic.holdToWin;
     run(s, 10);
     expect(s.winner).toBe(1);
     expect(s.winKind).toBe('conquest');

@@ -17,10 +17,11 @@ const DY = [0, 0, 1, -1, 1, -1, 1, -1];
  * A* over the tile grid. Returns the tiles to step through (excluding the start), an empty
  * array if the start already satisfies the goal, or null if no goal tile is reachable.
  * (hx, hy) is the point the heuristic aims at. Tiles matching `avoid` are treated as blocked.
+ * `salt` varies how ties between equally good paths are broken (deterministically).
  */
 export function findPath(
   s: Game, sx: number, sy: number, isGoal: (x: number, y: number) => boolean, hx: number, hy: number,
-  avoid?: (x: number, y: number) => boolean,
+  avoid?: (x: number, y: number) => boolean, salt = 0,
 ): number[] | null {
   if (isGoal(sx, sy)) return [];
   const { w, h } = s;
@@ -30,9 +31,17 @@ export function findPath(
   const from = new Int32Array(n).fill(-1);
   const closed = new Uint8Array(n);
   const heap: number[] = [];
+  // Among equally short paths prefer the one that hugs the straight line from start to target.
+  // Without this the choice falls to neighbour order, which is a screen direction: armies walking
+  // down the map would bunch differently from armies walking up it, and one side would win battles.
+  const lx = sx - hx, ly = sy - hy;
   const heur = (x: number, y: number) => {
     const dx = Math.abs(x - hx), dy = Math.abs(y - hy);
-    return Math.max(dx, dy) + 0.4142 * Math.min(dx, dy);
+    const off = Math.abs((x - hx) * ly - (y - hy) * lx);
+    // What is still tied is settled by a hash of the tile and the caller's salt rather than by
+    // neighbour order, so no compass direction is favoured across many paths.
+    const jitter = ((Math.imul((y * w + x) ^ salt, 2654435761) >>> 0) % 1024) * 1e-7;
+    return Math.max(dx, dy) + 0.4142 * Math.min(dx, dy) + off * 0.001 + jitter;
   };
   const push = (i: number) => {
     heap.push(i);

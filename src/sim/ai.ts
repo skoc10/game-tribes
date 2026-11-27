@@ -85,7 +85,10 @@ function economy(v: View): void {
   if (!has(v, 'towncenter')) { build(v, 'towncenter'); return; }
   if (tc && tc.queue.length === 0 && v.villagers.length < A.villagers) issue(s, me, { type: 'train', building: tc.id, unit: 'villager' });
 
-  const share: Record<ResourceKind, number> = p.age >= 2 ? { food: 0.45, wood: 0.3, crystal: 0.25 } : { food: 0.55, wood: 0.45, crystal: 0 };
+  const share: Record<ResourceKind, number> = p.age >= 2 ? { food: 0.5, wood: 0.32, crystal: 0.18 } : { food: 0.55, wood: 0.45, crystal: 0 };
+  // Do not keep mining what is already piling up (Sancaklılar also get crystal from caravans).
+  if (p.res.crystal > A.crystalEnough) { share.food += share.crystal * 0.6; share.wood += share.crystal * 0.4; share.crystal = 0; }
+  if (p.res.wood > A.woodEnough && p.res.food < p.res.wood / 2) { share.food += share.wood * 0.5; share.wood *= 0.5; }
   const count: Record<ResourceKind, number> = { food: 0, wood: 0, crystal: 0 };
   for (const u of v.villagers) { const j = jobOf(u); if (j) count[j]++; }
   const need = (k: ResourceKind) => share[k] * v.villagers.length - count[k];
@@ -134,7 +137,9 @@ function recruit(v: View): void {
     if (u.owner >= 0 && u.owner !== me && isFighter(u) && isVisible(s, me, u.x, u.y)) seen[clsOf(u)] = (seen[clsOf(u)] ?? 0) + 1;
   const top = Object.keys(COUNTER).sort((a, b) => (seen[b] ?? 0) - (seen[a] ?? 0))[0];
   const rotation = ['infantry', 'archer', 'cavalry'][(v.soldiers.length + queued) % 3];
-  for (const type of [(seen[top] ?? 0) > 0 ? COUNTER[top] : rotation, 'infantry']) {
+  // Spare crystal is best spent on cavalry.
+  const rich = p.res.crystal >= A.crystalEnough ? ['cavalry'] : [];
+  for (const type of [(seen[top] ?? 0) > 0 ? COUNTER[top] : rotation, ...rich, 'infantry']) {
     const b = has(v, TRAINED_AT[type], true);
     if (!b || b.queue.length >= 2) continue;
     const cost = unitCost(p, type);
@@ -243,6 +248,12 @@ function strategy(v: View): void {
     // The trader wants the relic, and fights only those already at war with it.
     st.enemy = -1;
     st.goal = v.soldiers.length >= A.relicArmy * st.nerve || holder === me ? 'relic' : 'none';
+    // Two armies standing on an unowned relic block each other forever; the trader ends the stand-off openly.
+    if (st.goal === 'relic' && holder < 0) {
+      const near = (u: Unit) => isFighter(u) && dist(u.x, u.y, s.relic.x, s.relic.y) <= CFG.relic.radius;
+      const blocker = v.army.some(near) ? s.units.find((u) => u.owner >= 0 && u.owner !== me && near(u)) : undefined;
+      if (blocker) { st.enemy = blocker.owner; declare(s, me, blocker.owner); }
+    }
     return;
   }
 

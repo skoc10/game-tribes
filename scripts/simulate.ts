@@ -1,6 +1,6 @@
 /**
  * Headless balance check: plays AI-versus-AI matches and reports win rates.
- *   npx tsx scripts/simulate.ts [matches=40]
+ *   npx tsx scripts/simulate.ts [matches=40] [mirror]   ("mirror" skips the three-way series)
  */
 import { runMatch, type Seat } from '../src/sim/headless';
 
@@ -33,6 +33,8 @@ for (const personality of ['expander', 'trader'] as const) {
     return i % 2 ? pair.reverse() : pair;
   }, (seat) => seat.race);
 }
+
+if (process.argv[3] === 'mirror') process.exit(0);
 
 // The MVP line-up: a third seat stands in for the player, rotating race and seat order.
 series('MVP dizilişi (3 taraf)', (i) => {

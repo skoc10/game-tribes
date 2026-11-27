@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boylar: Kadim Miras</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #10140f; color: #f2efe4; font: 14px/1.35 system-ui, sans-serif; user-select: none; }
+    #game { position: absolute; inset: 0; }
+    .bar { position: absolute; left: 0; right: 0; background: rgba(20, 24, 18, .92); border: 0 solid #5b6b47; display: flex; gap: 14px; align-items: center; padding: 6px 12px; z-index: 5; }
+    #topbar { top: 0; border-bottom-width: 2px; flex-wrap: wrap; }
+    #panel { bottom: 0; border-top-width: 2px; min-height: 76px; flex-wrap: wrap; }
+    .stat { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .grow { flex: 1; }
+    button { font: inherit; color: #f2efe4; background: #3a4a2c; border: 1px solid #7d915f; border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+    button:hover { background: #4d6239; }
+    button.on { background: #8a6a1f; border-color: #e0b84a; }
+    button.warn { background: #7a2f1f; border-color: #e0734a; }
+    button small { display: block; opacity: .8; font-size: 11px; }
+    #toast { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); background: rgba(120, 40, 25, .95); padding: 6px 14px; border-radius: 6px; z-index: 6; display: none; }
+    #menu { position: absolute; inset: 0; z-index: 10; background: #10140f; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+    #menu h1 { margin: 0; font-size: 34px; }
+    #menu .races { display: flex; gap: 18px; }
+    #menu .race { width: 250px; text-align: left; padding: 14px; font-size: 15px; }
+    #menu .race b { font-size: 19px; display: block; margin-bottom: 6px; }
+    .help { opacity: .75; font-size: 12px; max-width: 560px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="topbar" class="bar"></div>
+  <div id="toast"></div>
+  <div id="panel" class="bar"></div>
+  <div id="menu"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

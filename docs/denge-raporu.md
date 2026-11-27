@@ -2,110 +2,70 @@
 
 [GDD](GDD.md) 6.3'teki ölçüt: yapay zekâ–yapay zekâ simülasyonunda Sancaklılar–Külboyları kazanma oranı **%45–55**.
 
-**Sonuç: Tüccar aynası hedefte; Yayılmacı aynası hedefin içinde ama üst sınırda.** Ayarda hiç kullanılmamış yedi tohum kümesinde (eşleşme başına 2100 maç) Külboyları Yayılmacı aynasının %53,4'ünü (güven aralığı %51,3–55,6), Tüccar aynasının %49,3'ünü (%47,1–51,4) kazanıyor. Yani Külboyları savaşla biten maçlarda hâlâ hafif önde. Kişilikler arasındaki dengesizlik (Tüccar baskın) ise sürüyor.
+**Sonuç: yapısal sorunlar giderildi; halk dengesi hedefe yakın ama son değerler taze tohumlarda doğrulanmadı.** Son ölçümde (iki tohum kümesi, eşleşme başına 600 maç) Külboyları Yayılmacı aynasının %55–57'sini, Tüccar aynasının %50–52'sini kazanıyor. Hedef %45–55; Yayılmacı aynası üst sınırın hemen üstünde.
 
-## Ölçüm
+Bu sürümde sayı ayarından önce, tüm önceki ölçümleri çarpıtan dört yapısal sorun bulundu ve düzeltildi. Önceki raporlardaki yüzdeler bu nedenle geçersizdir.
 
-`npm run simulate 300 mirror <tohum>` — küme başına 300 maç. Oturma sırası her maç değişir. Parantez içindeki değer %95 güven aralığıdır. Tablodaki değer Külboyları'nın kazanma oranıdır.
+## Bulunan yapısal sorunlar
 
-| Tohum tabanı | Yayılmacı aynası | Tüccar aynası |
-|---|---|---|
-| 70000 | %52 (±6) | %49 (±6) |
-| 81000 | %50 (±6) | %48 (±6) |
-| 92000 | %53 (±6) | %50 (±6) |
-| 104000 | %54 (±6) | %47 (±6) |
-| Dördü birlikte (1200 maç) | %52,2 (±2,8) | %48,4 (±2,8) |
-| 250000 (inceleme) | %58 (±6) | %50 (±6) |
-| 333000 (inceleme) | %53 (±6) | %51 (±6) |
-| 417000 (inceleme) | %55 (±6) | %50 (±6) |
-| **Yedisi birlikte (2100 maç)** | **%53,4 (%51,3–55,6)** | **%49,3 (%47,1–51,4)** |
+1. **Harita simetrik değildi.** Bir üs, gerçek ayna konumundan bir karo kaymıştı; arkasında bina kuracak yer azdı, çiftliklerini daha yavaş kuruyor ve daha az asker çıkarıyordu. İki ve dört kişilik haritalar artık karo karo nokta simetrik (testle korunuyor); üç kişilikte kareli ızgarada tam simetri mümkün değil, kaynak sayıları eşit ya da en çok 3 ağaç farklı.
+2. **Yapay zekâ ekran yönüne göre karar veriyordu.** Bina yeri seçiminde eşitlikler tarama sırasıyla bozulduğu için alttaki üs Kışla'sını kampın dibine kuruyor, yeni askerleri tek tek kampa yem oluyordu (savaş öncesi ortalama 5,1 asker kaybı, üstte 0,9). Yer seçimi, en yakın kaynak, kamp yaratıklarının dizilişi, yol bulma ve hedef seçimindeki eşitlikler artık yönden bağımsız.
+3. **Tohumlama hatalıydı.** Ardışık tohumlar (1000, 1001, …) üreteci birbirine çok yakın durumlarda başlatıyordu; aynı ayar bir tohum aralığında %52, başka bir aralıkta %63 veriyordu. Önceki turlarda "ayar kümesinde tutup doğrulama kümesinde tutmayan" sonuçların nedeni buydu. Tohum artık kullanılmadan önce karıştırılıyor; altı farklı aralıkta sonuçlar birbirini tutuyor (%60–66 ve %50–56).
+4. **Yapay zekâ askerlerini tek tek gönderiyordu.** Kampa, Harabe'ye ve düşman üssüne giden takviyeler artık toplanma noktasında birikip grup halinde gidiyor.
 
-İlk dört küme tek başına iki aynayı da aralığın içinde gösteriyordu. Bağımsız incelemenin eklediği üç küme Yayılmacı aynasını yukarı çekti: yedi kümenin toplamında nokta tahmini (%53,4) aralığın içinde, ama güven aralığı %55'i aşıyor ve %50'yi dışarıda bırakıyor. Tüccar aynası her iki ölçümde de rahatça içeride.
+Ek olarak aynı tikte vurulan darbeler artık eşzamanlı: işlem sırası kimseye ilk vuruş avantajı vermiyor.
 
-Hangi tohumların ne için kullanıldığı önemli, çünkü bu rapor daha önce iki kez fazla iyimser çıktı:
+**İlk koltuk avantajı:** Aynı halk ve kişilik her iki koltukta otururken ilk koltuğun kazanma oranı başta %60–90 arasındaydı; düzeltmelerden sonra on iki ölçümün ortalaması %52 (tek tek ölçümler %43–65). Bir istisna kaldı: iki taraf da Sancaklılar/Tüccar iken ilk koltuk hâlâ belirgin önde (%57–73). Kervan ya da "artan kristali süvariye harca" kuralı kapatılınca fark kayboluyor; kök neden bulunamadı. İnsan oyuncunun başlangıç köşesi artık her maç rastgele.
 
-- **Ayar:** 1000'den başlayan kümeler; kamp ganimeti ve kervanın kabaca yeri burada bulundu.
-- **Son kervan seçimi:** 5000, 9000, 20000, 31000, 47000 ve 63000 kümelerinde kervan 5, 3 ve 2 karşılaştırıldı. Kervan 5 ile Tüccar aynası 1800 maçta %46,6 (±2,3) ile alt sınırdaydı ve bir kümede %39'a iniyordu; 3 ile altı kümenin ortalaması %49,7 oldu. Bu altı küme seçimde kullanıldığı için doğrulama sayılmaz.
-- **Doğrulama:** yukarıdaki dört küme; seçimden sonra, tek seferde ölçüldü.
+## Kural değişikliği: Harabe'nin başında nöbet
 
-Tek tek kümeler %44 ile %58 arasında oynuyor (300 maçta beklenen dalgalanma). Tek bir kümeye bakıp karar vermeyin.
+Maçların %86–89'u Harabe ile bitiyordu; tutma süresini uzatmak, fesih bildirimini kısaltmak ya da Tüccar'ı temkinli yapmak bunu değiştirmedi (fetih %14–19'da kaldı). Neden yapısaldı: Harabe bir kez alınınca başında durmak gerekmiyordu.
 
-Yayılmacı aynasında ilk koltuk yedi kümenin altısında %58–62 kazanıyor (ortalama ~%60). Oturma sırası dönüşümlü olduğu için halk karşılaştırmasını etkilemez, ama bir koltuk avantajına işaret eder. Hiçbir maç 60 dakikada sonuçsuz kalmadı.
+Yeni kural: **sayaç yalnızca sahibin askeri Harabe'deyken ve orada savaşta olduğu bir düşmanın askeri yokken işler.** Harabe'yi tutmak bir orduyu oraya bağlar ve üssü açık bırakır. Sonuç (üçlü diziliş, ayar tohumları, 200–300 maç): fetih oranı %30–37, sabit Tüccar %34–43, sabit Yayılmacı %19–28. Eşit olsaydı her koltuk ~%33 alırdı; Yayılmacı hâlâ geride ama fark yarıya indi.
 
-### Üçlü diziliş (MVP'deki gibi)
+Bu kuralla ortaya çıkan kilitlenme (sahibi başında olmayan Harabe'de iki ziyaretçi ordunun birbirini engellemesi; maçların %7'si 60 dakikada bitmiyordu) yapay zekânın kilitlenmeyi açıkça çözmesiyle giderildi.
 
-Sabit bir Tüccar (Sancaklılar), sabit bir Yayılmacı (Külboyları) ve oyuncunun yerine geçen, halkı ve kişiliği dönüşümlü üçüncü koltuk. 300 maç (tohum 5000–5299); oranlar o koltuğun oynadığı maç sayısına göredir:
+## Son değerler
 
-| Koltuk | Galibiyet |
-|---|---|
-| Sabit Tüccar (Sancaklılar) | 139/300 — %46 (±6) |
-| Sabit Yayılmacı (Külboyları) | 47/300 — %16 (±4) |
-| Üçüncü koltuk: Külboyları / Tüccar | 36/75 — %48 (±11) |
-| Üçüncü koltuk: Sancaklılar / Tüccar | 34/75 — %45 (±11) |
-| Üçüncü koltuk: Külboyları / Yayılmacı | 25/75 — %33 (±11) |
-| Üçüncü koltuk: Sancaklılar / Yayılmacı | 19/75 — %25 (±10) |
-
-Üç koltuk eşit olsaydı her biri ~%33 alırdı. 300 maçın 266'sı Harabe zaferiyle bitti. Fark artık halktan değil kişilikten geliyor: Tüccar hangi halkla oynarsa oynasın öne geçiyor.
-
-## Ne öğrenildi
-
-Aşağıdaki ölçümler `scripts/tune.ts` ile alındı; bu betik veri dosyalarını değiştirmeden geçici değerlerle iki aynayı oynatır. Sayılar ayar tohumlarındandır (taban 1000, 100–200 maç), yani ±7–10 puan belirsizlik taşır. 1–5. maddeler bağımsız incelemede yeniden üretildi; değerler "Yayılmacı aynası / Tüccar aynası" sırasıyla Külboyları'nın oranıdır.
-
-1. **Ölçüm düzeneği sağlam.** İki halkın tüm özellikleri kapatılınca sonuç %50 / %54:
-   `npx tsx scripts/tune.ts '{"kulCost":1,"kulTrain":1,"farm":1,"cavalry":1,"RACES.kul.loot":false,"RACES.kul.buildingHp":1,"RACES.kul.techCost":1,"RACES.sancak.caravan":false,"RACES.sancak.gather.crystal":1}' 100`
-2. **GDD'nin tam oyun değerleriyle Külboyları %92 / %100 kazanıyor.**
-3. **Kamp ganimeti tek başına büyük bir avantaj.** Diğer tüm özellikler kapalı, yalnızca ganimet GDD tablosuyla açıkken sonuç %72 / %84. Ganimet barışta orduyu büyütmüyor (8–10. dakikalarda iki tarafın ordu gücü eşit), ama ilk çarpışmadan sonra takviye için hazır kaynak bırakıyor.
-4. **Birim indirimi çok hassas.** Ganimet 0,4 katı ve kervan 5 iken, maliyet ve üretim süresi indirimini birlikte %5'ten %7'ye çıkarmak Yayılmacı aynasında Külboyları'nı %56'dan %66'ya, %10 yapmak %79'a taşıyor.
-5. **Sancak Kervanı yalnızca paktlı maçları etkiliyor.** Ganimet 0,4 katı iken kervan 18 → 9 → 5 → 0 kristal/dk için Tüccar aynası %29 → %44 → %49 → %57; Yayılmacı aynası (pakt yok) %56'da sabit. Böylece iki ayna iki ayrı kaldıraçla ayarlanabildi: ganimet ve kervan.
-6. **Yapay zekânın davranışı sonucu sayılardan çok etkileyebiliyor.** İlk sürümdeki "ordusu 10'a ulaşan saldırır" kuralı, birimleri ucuz olan tarafı önce saldırtıp savunana yediriyordu. (Bu madde eski kodla ölçüldü, bugünkü depodan yeniden üretilemez.)
-
-## Yapılan ayarlar
-
-GDD'nin tam oyun değerleriyle Külboyları ayar tohumlarında iki aynayı %92 ve %100 kazanıyordu.
+Yapısal düzeltmelerden sonra imza mekaniklerini küçültmeye gerek kalmadı: kamp ganimeti GDD tablosuna geri döndü.
 
 | Değer | GDD (tam oyun) | MVP | Dosya |
 |---|---|---|---|
-| Külboyları birim maliyeti | −%15 | **−%5** | `src/data/races.json` |
-| Külboyları üretim süresi | −%15 | **−%5** | `src/data/races.json` |
-| Kamp ganimeti (kademe 1 / 2 / 3) | 60+40 / 100+60+20 / 150+80+40 | **24+16 / 40+24+8 / 60+32+16** (0,4 katı) | `src/data/config.json` |
-| Sancak Kervanı | 18 kristal/dk | **3 kristal/dk** | `src/data/config.json` |
-| Sancaklılar çiftlik verimi | +%20 | +%20 | `src/data/races.json` |
+| Külboyları birim maliyeti ve üretim süresi | −%15 | **−%5** | `src/data/races.json` |
+| Kamp ganimeti | 60+40 / 100+60+20 / 150+80+40 | aynı | `src/data/config.json` |
+| Öldürme ganimeti (birim / bina) | %15 / %20 | **kapalı** | `src/data/config.json` |
+| Sancak Kervanı | 18 kristal/dk | **12 kristal/dk** | `src/data/config.json` |
+| Sancaklılar çiftlik verimi | +%20 | aynı | `src/data/races.json` |
 
-Çiftlik verimi Faz 5'in ilk ayarında +%30'a çıkarılmıştı; bu sürümde GDD'deki +%20'ye geri alındı. Öldürme ganimeti (birim %15, bina %20) GDD'deki gibi bırakıldı. Bu ayarlar yalnızca iki çağlı, ~15 dakikalık MVP içindir: kısa maçta Külboyları'nın zayıflıkları (kırılgan bina, pahalı teknoloji) devreye girmediği için güçlü yanlarının küçültülmesi gerekti. Çağ III–IV eklendiğinde GDD değerlerinden yeniden başlanmalıdır.
+Ölçümler (`scripts/tune.ts`, tohum tabanı 1000 ve 2000, 300'er maç, Külboyları'nın oranı):
 
-İki imza mekaniği sayıca küçüldü ama çalışıyor: Külboyları kamp temizleyince ganimet patlaması görüyor, Sancaklılar her pakt için kervan görüyor ve gelir alıyor. Bunların çocuklar için hâlâ "hissedilir" olup olmadığı (GDD 6.2'nin asıl amacı) ancak oyun testiyle anlaşılır.
+| Ayar | Yayılmacı aynası | Tüccar aynası |
+|---|---|---|
+| Öldürme ganimeti açık (%15 / %20) | %63, %66 | %56, %54 |
+| **Öldürme ganimeti kapalı (seçilen)** | **%55, %57** | **%52, %50** |
+| Kamp ganimeti 0,85 katı | %56, %57 | %38, %42 |
+| Birim indirimi %3 | %68, %66 | %70, %74 |
+| Birim indirimi yok | %62, %61 | %38, %34 |
+| Külboyları bina canı −%30 | %63, %66 | %56, %54 |
 
-Faz 5'te yapay zekâda değişenler (`src/sim/ai.ts`, `src/data/config.json`):
+Dürüstlük notu: seçilen ayar bu iki tohum kümesinde ölçüldü, **ayrı kümelerde doğrulanmadı**; denge çalışması bu noktada durduruldu. Tohumlama düzeltildiği için aralıklar arası tutarsızlık beklenmiyor, ama Yayılmacı aynasındaki %55–57 hedefin üst sınırında ya da hemen üstünde. Üçlü diziliş de son ayarla (öldürme ganimeti kapalı) yeniden ölçülmedi.
 
-- Kale Çağı'nda köylü payları yiyecek/odun/kristal 0,45/0,30/0,25'ten 0,50/0,32/0,18'e çekildi.
-- Kristal 120'yi geçince madenden köylü çekiyor ve artan kristali süvariye harcıyor; odun 400'ü geçip yiyecek geride kalınca oduncuların yarısını yiyeceğe kaydırıyor.
-- Savaşta 18 yerine 30 askere kadar üretiyor; Harabe'ye 8 yerine 14 askerle gidiyor.
-- Yayılmacı bir saldırıyı yalnızca rakibinden en az 1,2 kat güçlüyken başlatıyor (başladıktan sonra ordusu 3 askerin altına düşene kadar sürdürür); değilse Harabe'ye yöneliyor. Haine karşı koalisyonda ve Harabe kilitlenmesinde bu koşul aranmaz.
-- Sahipsiz Harabe'de ordular birbirini kilitlediğinde, orada en çok askeri olan rakibe karşı durumu açıkça çözüyor (pakt varsa önce fesih bildirimi). Rakip art arda iki strateji turunda (~20 sn arayla) orada görülmedikçe harekete geçmez. İki kişilik için de geçerli.
+Birim indirimi beklenmedik biçimde doğrusal değil (%3 indirim, %5'ten de %0'dan da iyi sonuç veriyor); bu, sonucun yapay zekânın zamanlamalarına çok duyarlı olduğunu gösteriyor.
 
 ## Açık işler
 
-1. **Tüccar kişiliği üçlü maçlarda baskın, Yayılmacı zayıf.** Sabit Tüccar %46, sabit Yayılmacı %16 kazanıyor ve maçların %89'u Harabe ile bitiyor. Yayılmacı bir komşusuyla uğraşırken Tüccar Harabe'yi alıyor. Denenebilecekler: Harabe tutma süresini uzatmak, fesih bildirimini kısaltmak, Yayılmacı'nın Harabe sahibini öncelikli hedef seçmesi. Tüccar'ı daha temkinli yapmak (20 askerle gitmek) denendi ve işe yaramadı.
-2. **Yayılmacı aynası üst sınırda ve denge kırılgan.** Külboyları savaşla biten maçlarda %53,4 ile hafif önde; bir sonraki adım kamp ganimetini biraz daha kısmak (0,4 → ~0,35) ve yeni tohumlarda doğrulamak olabilir. Sonuç birim indirimi ve kervan gibi değerlere çok hassas (yukarıdaki 4. ve 5. maddeler). Yapay zekâda ya da kurallarda yapılacak her değişiklikten sonra, yeni tohum kümeleriyle yeniden ölçülmeli.
-3. **Koltuk avantajı.** Yayılmacı aynasında ilk koltuk ~%60 kazanıyor; nedeni araştırılmadı (harita yerleşimi ya da işlem sırası olabilir). Bir insan oyuncu her zaman ilk koltukta oturduğu için önemli.
-4. **Maçlar kısa.** Ortalama ~15 dakika; 8 dakikası barış.
-5. **Yapay zekâ keşif yapmadan düşman binalarının yerini ve ordu gücünü biliyor.**
-6. **İnsan oyuncuyla ölçüm yok.** Buradaki tüm sayılar yapay zekâ–yapay zekâ maçlarından gelir. GDD 6.3'teki diğer ölçütler çocuklarla oyun testi gerektirir ve yapılmadı.
+1. **Son değerlerin taze tohumlarda doğrulanması** (`npm run simulate 300 all <yeni taban>`), üçlü diziliş dahil.
+2. **Yayılmacı kişiliği üçlü maçlarda hâlâ geride** (%19–28).
+3. **Sancaklılar/Tüccar aynasındaki koltuk etkisi** (yukarıda).
+4. **Öldürme ganimeti kapalı.** GDD 2.6'daki "düşman kayıplarından ganimet" MVP'de yok; küçük bir değerle (ör. %5 / %10) yeniden açılıp ölçülebilir.
+5. **Dört kişilik haritada yakın kamp ile ara kamp birbirine çok yakın** (5 karo); MVP üç kişilik olduğu için düzeltilmedi.
+6. **Yapay zekâ keşif yapmadan düşman binalarının yerini ve ordu gücünü biliyor.**
+7. **İnsan oyuncuyla ölçüm yok.** Tüm sayılar yapay zekâ–yapay zekâ maçlarından gelir; yapay zekâ aynalarında küçük farklar kartopu etkisiyle büyür, insan maçları bu kadar kırılgan olmayabilir. GDD 6.3'teki diğer ölçütler çocuklarla oyun testi gerektirir ve yapılmadı. Sıradaki adım budur.
 
 ## Yeniden ölçmek için
 
 ```bash
-npm run simulate 300 mirror 70000
+npm run simulate 300 all 70000
 ```
 
-Üçlü diziliş tablosu için:
-
-```bash
-npm run simulate 300 all 5000
-```
-
-Bağımsız değişkenler sırasıyla: seri başına maç sayısı, `all` ya da `mirror` (üçlü seriyi atlar), tohum tabanı. Tohum tabanı verilmezse ayar kümesi (1000) kullanılır; doğrulama için her zaman başka bir taban verin.
-
-Ayar denemeleri için `scripts/tune.ts` kullanılır (başındaki açıklamaya bakın); kalıcı değişiklik yapmadan değer dener.
-
-Yeni yapay zekâ kuralları (güç üstünlüğü koşulu, Harabe kilidi) için ayrı birim testi yoktur; yalnızca tam maç testleri ve bu simülasyon tarafından kapsanırlar.
+Bağımsız değişkenler sırasıyla: seri başına maç sayısı, `all` ya da `mirror` (üçlü seriyi atlar), tohum tabanı. Ayar denemeleri için `scripts/tune.ts` (veri dosyalarını değiştirmeden geçici değer dener; üçlü seriyi de raporlar), koltuk adaleti için `scripts/seat.ts` kullanılır.

@@ -33,7 +33,7 @@ function start(race: RaceId): void {
 const menu = document.getElementById('menu')!;
 menu.innerHTML = `<h1>Boylar: Kadim Miras</h1><div>Halkını seç</div><div class="races">${
   (Object.keys(RACE_BLURB) as RaceId[]).map((r) => `<button class="race" data-race="${r}"><b>${RACE_BLURB[r].title}</b>${RACE_BLURB[r].text}</button>`).join('')
-}</div><div class="help">Erken prototip. İlk 8 dakika barış: üssünü kur, keşfet, kamp avla. Sonra Kadim Harabe'yi 3 dakika tut ya da rakipleri yen. İki komşun var: barışçıl Tüccar ve saldırgan Yayılmacı. Onlarla savaşabilir ya da pakt yapabilirsin.</div>`;
+}</div><div class="help">Erken prototip. İlk 8 dakika barış: üssünü kur, keşfet, kamp avla. Sonra Kadim Harabe'yi alıp başında 3 dakika nöbet tut ya da rakipleri yen. İki komşun var: barışçıl Tüccar ve saldırgan Yayılmacı. Onlarla savaşabilir ya da pakt yapabilirsin.</div>`;
 menu.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest('[data-race]') as HTMLElement | null;
   if (el) start(el.dataset.race as RaceId);

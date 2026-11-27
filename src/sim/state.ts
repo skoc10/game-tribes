@@ -3,7 +3,7 @@ import { spawnCamp } from './camps';
 import { initDiplo } from './diplomacy';
 import { updateFog } from './fog';
 import { inBounds, walkable } from './path';
-import { rand } from './rng';
+import { rand, scramble } from './rng';
 import {
   T_BUSH, T_CRYSTAL, T_GRASS, T_TREE,
   type Building, type Game, type GameOptions, type Unit,
@@ -118,7 +118,7 @@ export function spawnNear(s: Game, b: Building, type: string): Unit | null {
 export function createGame(opts: GameOptions): Game {
   const size = CFG.mapSize;
   const s: Game = {
-    seed: opts.seed, tick: 0, time: 0, w: size, h: size,
+    seed: scramble(opts.seed), tick: 0, time: 0, w: size, h: size,
     terrain: new Uint8Array(size * size), amount: new Float32Array(size * size),
     occ: new Int32Array(size * size), mapVersion: 0,
     units: [], buildings: [], players: [], nextId: 1, events: [],

@@ -50,7 +50,7 @@ function stepRelic(s: Game): void {
     if (r.progress >= CFG.relic.captureTime) {
       if (r.owner >= 0) addRelation(s, sole, r.owner, -CFG.diplomacy.relicRelation, `${s.players[sole].name} Kadim Harabe'yi elinden aldı.`);
       r.owner = sole; r.captor = -1; r.progress = 0; r.held = 0;
-      everyone(s, 'relic', `${s.players[sole].name} Kadim Harabe'yi ele geçirdi. ${CFG.relic.holdToWin / 60} dakika tutarsa kazanır!`);
+      everyone(s, 'relic', `${s.players[sole].name} Kadim Harabe'yi ele geçirdi. ${CFG.relic.holdToWin / 60} dakika başında nöbet tutarsa kazanır!`);
     }
   } else if (present.size === 0 || sole === r.owner) {
     r.captor = -1; r.progress = 0;

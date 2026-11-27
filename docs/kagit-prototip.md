@@ -18,7 +18,7 @@
 
 ## Kurulum
 
-Her taraf üssünde 3 köylü, 1 piyade, 3 yiyecek ve 3 odunla başlar. Yapay zekâ tarafını bir yetişkin, çektiği kişilik kartına göre oynar.
+Her taraf üssünde 3 köylü, 1 piyade, 3 yiyecek ve 3 odunla başlar. Yapay zekâ tarafını bir yetişkin, çektiği kişilik kartına göre oynar: Tüccar kartıyla Sancaklılar'ı, Yayılmacı kartıyla Külboyları'nı yönetir.
 
 ## Tur yapısı
 
@@ -38,7 +38,7 @@ Her turda sırayla:
 
 ## Savaş
 
-Piyade süvariyi, süvari okçuyu, okçu piyadeyi yener. Üstün olan kazanır, kaybeden kart haritadan kalkar. Aynı sınıflar karşılaşırsa zar atılır; yüksek atan kazanır. Üsse giren ve karşısında savunan bulamayan birim üsse 1 hasar verir; üssün 3 canı vardır.
+Piyade süvariyi, süvari okçuyu, okçu piyadeyi yener. Üstün olan kazanır, kaybeden kart haritadan kalkar. Aynı sınıflar karşılaşırsa zar atılır; yüksek atan kazanır. Köylüler savaşamaz; bir savaş birimiyle aynı karede kalan köylü haritadan kalkar. Bir karede birden çok birim varsa saldıran taraf eşleşmeleri tek tek seçer. Üsse giren ve karşısında savunan bulamayan birim üsse 1 hasar verir; üssün 3 canı vardır.
 
 ## Halk kuralları
 
@@ -49,7 +49,7 @@ Piyade süvariyi, süvari okçuyu, okçu piyadeyi yener. Üstün olan kazanır, 
 
 - **Saldırmazlık Paktı:** İki taraf da kabul ederse 3 tur sürer; yenilenebilir.
 - **Dürüst çıkış:** "Gelecek tur paktı bitiriyorum" demek. Güvenilirlik −1.
-- **İhanet:** Pakt sürerken haber vermeden saldırmak. Güvenilirlik −4; yetişkin yüksek sesle nedenini söyler.
+- **İhanet:** Pakt sürerken haber vermeden saldırmak. Güvenilirlik −3 (GDD'deki −25/100 ile aynı oranda; tek ihanet koalisyonu tetiklemez, ikincisi tetikler); yetişkin yüksek sesle nedenini söyler.
 - Güvenilirlik 3'ün altına düşerse diğer herkes 3 tur boyunca o oyuncuya karşı birleşir.
 
 ### Kişilik kartları (yetişkin için)
@@ -65,7 +65,7 @@ Piyade süvariyi, süvari okçuyu, okçu piyadeyi yener. Üstün olan kazanır, 
 ## Kazanma
 
 - **Fetih:** Diğer üslerin canını sıfırlamak.
-- **Harabe:** Kadim Harabe karesinde 3 tur üst üste rakipsiz birim tutmak.
+- **Harabe:** Kadim Harabe karesinde 3 tur üst üste rakipsiz birim tutmak. Sayım barış bittikten sonra başlar; barış turlarında Harabe uykudadır.
 
 ## Gözlem formu
 

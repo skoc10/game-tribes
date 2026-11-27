@@ -44,7 +44,7 @@ Oyun gerçek zamanlı akar, ancak oyuncu istediği an duraklatıp emir verebilir
 
 Dört çağ, barış süresi ve Anıt/Kalıntı koruma sürelerinin 30–40 dakikaya sığması için:
 
-- Kaynak toplama hızı klasik Age of Empires'a göre **yaklaşık %35 daha hızlıdır** (bkz. 3.1).
+- Yiyecek ve odun toplama hızı klasik Age of Empires'a göre **yaklaşık %35 daha hızlıdır**; taş ve kristal bilerek daha yavaştır (bkz. 3.1).
 - Çağ atlama araştırması kısadır: I→II **30 sn**, II→III **40 sn**, III→IV **45 sn**.
 - Harita küçüktür: izci bir köşeden karşı köşeye yaklaşık 60 saniyede ulaşır.
 
@@ -132,7 +132,7 @@ Ortak Zafer kuralları 4.7'dedir.
 | Birim | Sınıf | Ne yapar | Zayıflığı |
 |---|---|---|---|
 | **Sancak Süvarisi** | Süvari | Çevresindeki dost birimlere +%10 saldırı hızı verir (auralar üst üste binmez) | Piyadeye karşı sıradan süvari kadar kırılgan |
-| **Dal Gezgini** | Okçu | Yürürken ok atabilir; ormanda görünmezdir | Düşük can; süvari yakalarsa dayanamaz |
+| **Dal Gezgini** | Okçu | Yürürken ok atabilir; ormanda saldırırken de gizli kalır (diğer Yaprakdil birimleri saldırınca görünür olur) | Düşük can; süvari yakalarsa dayanamaz |
 | **Kalkan Muhafızı** | Piyade | Okçuların piyadeye karşı üstünlük çarpanını ×1.5'ten ×1.0'a indirir | Çok yavaş; büyücü alan hasarına açık |
 | **Kurt Binicisi** | Süvari | En hızlı birim; ekonomi binalarına ve kervanlara +%50 hasar | En düşük canlı süvari; piyade hattına giremez |
 
@@ -152,7 +152,7 @@ Ortak kurallar: Her halkın 1 kahramanı vardır ve maça onunla başlar. Seviye
 | Kahraman | Sv. 2 (aktif) | Sv. 4 (pasif aura) | Sv. 6 (aktif) | Sv. 8 (nihai) |
 |---|---|---|---|---|
 | **Komutan Aldera** (Sancaklılar) | *Toplanma Borusu:* çevredeki birimler 10 sn +%20 hızlı | *Sancak Gölgesi:* çevreye +%10 hareket hızı (Sancak Süvarisi'nin saldırı hızı aurasıyla birlikte çalışır) | *Kalkan Duvarı:* 8 sn boyunca alınan hasar −%40 | *Büyük Hücum:* süvariler 6 sn durdurulamaz, ilk vuruş ×1.5 |
-| **Korucu Sılven** (Yaprakdiller) | *Keskin Nişan:* tek hedefe yüksek hasar | *Orman Fısıltısı:* çevreye görüş +2, ormanda gizlenme | *Sarmaşık Tuzağı:* alanda yavaşlatma | *Ok Yağmuru:* geniş alan hasarı |
+| **Korucu Sılven** (Yaprakdiller) | *Keskin Nişan:* tek hedefe yüksek hasar | *Orman Fısıltısı:* çevreye görüş +2, yakındaki gizli düşmanları açığa çıkarır | *Sarmaşık Tuzağı:* alanda yavaşlatma | *Ok Yağmuru:* geniş alan hasarı |
 | **Usta Durgan** (Taşocaklılar) | *Yer Sarsan:* alanda 2 sn sersemletme | *Taş Deri:* çevreye zırh +1 | *Ocak Ateşi:* yakındaki binalar hızla onarılır, kuleler hızlı atar | *Dağın Öfkesi:* binalara ve kuşatmaya büyük hasar |
 | **Boy Beyi Karhan** (Külboyları) | *Savaş Narası:* düşman hasarı 6 sn −%15 | *Sürü Ruhu:* yakındaki her 5 dost birim için +%2 hasar (en çok +%10) | *Akın:* kısa, hızlı hücum | *Kül Fırtınası:* alanda düşman görüşü kısılır ve yavaşlar |
 
@@ -181,7 +181,7 @@ Ortak kurallar: Her halkın 1 kahramanı vardır ve maça onunla başlar. Seviye
 
 - Haritada **yeniden doğan tarafsız yaratık kampları** vardır ve barış süresinde de avlanabilir (bkz. 4.5).
 - Kamplar herkese kahraman deneyimi verir; **kaynak ganimeti yalnızca Külboyları'na** düşer. Diğerleri çiftlik kurarken Külboyları avlanarak büyür ve barış bittiği an hazır bir orduyla çıkar.
-- Ganimet kamp başına sabittir ve kamplar en fazla 3. kademeye kadar güçlenir; böylece gelir sınırsız büyümez.
+- Ganimet kademe başına sabittir (bkz. 4.5) ve kamplar en fazla 3. kademeye kadar güçlenir; böylece gelir sınırsız büyümez.
 - Barıştan sonra ganimet düşman kayıplarından da gelir: yenilen birimin maliyetinin %15'i, yıkılan binanın %20'si.
 
 **Taşocaklılar ve "kapanıp Anıt basma".**
@@ -209,9 +209,9 @@ Tasarım notları:
 - Taş haritada bilerek kıttır ve sınır bölgelerine yerleştirilir; komşularla çekişme yaratır.
 - Kristalin madenden gelen kısmı yetersizdir. Çağ III–IV için gereken kristalin büyük bölümü **ticaret anlaşmalarından ve kalıntılardan** gelir. Diplomasiyi değerli kılan temel mekanizma budur.
 - Pazar'da kaynaklar birbirine çevrilebilir (100'e 70 oranında); bu, yanlış planlamayı telafi eden ama pahalı bir çıkış yoludur.
-- Klasik Age of Empires'ta köylü başına ~20/dk olan toplama hızı burada ~%35 artırılmıştır.
+- Klasik Age of Empires'ta köylü başına ~20/dk olan yiyecek ve odun toplama hızı burada ~%35 artırılmıştır; taş ve kristal kıtlık yaratmak için daha yavaş toplanır.
 
-Nüfus: Ana Merkez 10, her Ev +5 nüfus sağlar; üst sınır 60. Köylü ve piyade 1, süvari ve büyücü 2, kuşatma 3 nüfus tutar.
+Nüfus: Ana Merkez 10, her Ev +5 nüfus sağlar; üst sınır 60. Köylü, izci, piyade ve okçu 1, süvari ve büyücü 2, kuşatma 3 nüfus tutar; kahraman nüfus tutmaz.
 
 ### 3.2 Çağlar
 
@@ -244,7 +244,7 @@ Tüm halklar için ortaktır; halk bonusları bunun üzerine uygulanır.
 | Piyade | I | 50 yiyecek, 20 odun | 60 | 7 | Yakın | Orta | 18 sn | 1 |
 | Okçu | II | 25 yiyecek, 45 odun | 35 | 6 | 5 | Orta | 20 sn | 1 |
 | Süvari | II | 80 yiyecek, 25 kristal | 90 | 9 | Yakın | Hızlı | 25 sn | 2 |
-| Kuşatma | III | 150 odun, 100 taş | 120 | 40 (binalara) | 7 | Yavaş | 40 sn | 3 |
+| Kuşatma | III | 150 odun, 100 taş | 120 | 14 (binalara ×3.0 ile 42) | 7 | Yavaş | 40 sn | 3 |
 | Büyücü | III | 60 yiyecek, 80 kristal | 40 | 12 (alan) | 5 | Orta | 35 sn | 2 |
 
 **İzci.** Tüm halklarda aynı değerlere sahiptir; yalnızca görünümü halka özgüdür. "Otomatik keşfet" düğmesi vardır. **Tarafsız kamplar izciye saldırmaz**, ayrıca otomatik keşif rotası kampların etrafından dolaşır. İzci yalnızca barış bittikten sonra, rakip birimler tarafından yenilebilir.
@@ -332,7 +332,7 @@ Barış bittikten sonra aralıklarla tek bir olay tetiklenir. Her olay **30–45
 |---|---|---|---|---|
 | **Kuraklık** | Çiftlik verimi −%40 | 2 dk | Tek kaynağa bağlı kalma | Yiyecek stoku, av, Pazar takası |
 | **Meteor Yağmuru** | İşaretli bölgeye düşer, hasar verir; ardından 600 kristallik yatak bırakır | Anlık | Risk ve ödül | Bölgeyi boşalt, sonra yatağı ilk sen tut |
-| **Yaratık Baskını** | Tarafsız sürü, puanı en yüksek tarafın sınırına saldırır | ~90 sn | Önde olmanın da bedeli var | Sur, kule, orduyu geri çek |
+| **Yaratık Baskını** | Tarafsız sürü, güç puanı (sahip olunan birim ve binaların toplam maliyeti) en yüksek tarafın sınırına saldırır | ~90 sn | Önde olmanın da bedeli var | Sur, kule, orduyu geri çek |
 | **Gezgin Kervan** | Merkeze tarafsız tüccar gelir; her taraf bir kez avantajlı takas yapar | 2 dk | Fırsatı değerlendirme | Merkeze güvenli yol aç |
 | **Sis Gecesi** | Tüm görüş −%40 | 90 sn | Bilginin değeri | Kule ve izciyle sınırı izle; pusuya dikkat |
 
@@ -357,7 +357,9 @@ Yaratık Baskını bilerek lideri hedefler: geride kalana nefes aldıran bir den
 
 "En fazla 1 müttefik" kuralı haritada en kalabalık dengeyi 2'ye 2 yapar; oyuncunun üç yapay zekâyı birden yanına alıp oyunu anlamsızlaştırmasını ya da üçe bir kalmasını engeller.
 
-**Savaş ilanı.** Aralarında anlaşma olmayan bir tarafa barıştan sonra saldırmak ihanet değildir; ilk saldırı otomatik olarak savaş ilanı sayılır. Güvenilirlik değişmez, yalnızca o tarafla İlişki −40 olur.
+**Başlangıç İlişkisi.** İki taraf arasındaki İlişki, tarafların kişilik eğilimlerinin toplamıyla başlar: Tüccar +25, Fırsatçı +10, Onurlu Savunmacı 0, Yayılmacı −10, oyuncu 0. Örneğin oyuncu–Tüccar +25 ile başlar ve hemen pakt yapabilir; oyuncu–Yayılmacı −10 ile başlar ve önce hediyeyle İlişkiyi yükseltmek gerekir.
+
+**Savaş ilanı.** Aralarında pakt ya da ittifak olmayan bir tarafa barıştan sonra saldırmak ihanet değildir; ilk saldırı otomatik olarak savaş ilanı sayılır. Güvenilirlik değişmez, yalnızca o tarafla İlişki −40 olur. Yalnızca Ticaret Anlaşması olan bir tarafa saldırmak da savaş ilanıdır: anlaşma sona erer ve ek olarak Güvenilirlik −10 olur.
 
 **İhanet.** Yürürlükteki bir pakt ya da ittifak varken bildirimsiz saldırmaktır. Kazara ihaneti önlemek için oyun onay ister: *"Bu bir ihanet olacak ve herkes bunu bilecek. Emin misin?"*
 
@@ -376,7 +378,7 @@ Yaratık Baskını bilerek lideri hedefler: geride kalana nefes aldıran bir den
 | Müttefikin yardım çağrısına karşılık vermek | +5 |
 | Hediye göndermek (3 dakikada en çok bir kez sayılır) | +3 |
 
-**İlişkiyi değiştirenler:** hediye (+), ortak düşmana karşı savaşmak (+10), yardım çağrısına gelmek (+15) ya da gelmemek (−10), sınıra ordu yığmak (−5), elindeki kalıntıyı almak (−10).
+**İlişkiyi değiştirenler:** hediye (gönderilen her 20 kaynak için +1; 3 dakikada en çok +15), ortak düşmana karşı savaşmak (+10), yardım çağrısına gelmek (+15) ya da gelmemek (−10), sınıra ordu yığmak (−5), elindeki kalıntıyı almak (−10).
 
 **"Neden?" günlüğü.** Her İlişki ve Güvenilirlik değişimi ekranda kısa bir gerekçeyle belirir ve diplomasi panelinde listelenir. Örnek: *"Güvenilirlik −40 — Müttefikine haber vermeden saldırdın."* Yapay zekâlar da aynı kurallara tabidir; ihanet eden yapay zekâ da aynı cezayı alır.
 
@@ -534,13 +536,13 @@ Zorluk, yapay zekâya haksız avantaj vererek değil; karar kalitesi, tempo ve y
 | Alan | MVP'de var |
 |---|---|
 | Harita | 1 sabit harita; oyuncu + 2 yapay zekâ |
-| Halklar | Sancaklılar ve Külboyları |
-| Kaynak | Yiyecek, odun, kristal (sur ve Anıt kapsam dışı olduğu için taş yok) |
+| Halklar | Sancaklılar ve Külboyları. Yapay zekâlardan biri Sancaklılar (Tüccar), diğeri Külboyları'dır (Yayılmacı); oyuncuyla aynı halkı oynayan taraf renkle ayırt edilir. |
+| Kaynak | Yiyecek, odun, kristal (sur ve Anıt kapsam dışı olduğu için taş yok). Başlangıç: 200 yiyecek, 200 odun. |
 | Çağlar | I ve II |
 | Birimler | Köylü, izci, piyade, okçu, süvari; yeteneksiz kahraman |
 | Sistemler | Savaş sisi, barış sayacı, savaş üçgeni göstergeleri, duraklatma ve hız |
 | Tarafsız kamplar | Yeniden doğan, en fazla 3 kademe; izciye saldırmaz |
-| Diplomasi | Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve onay penceresi, "Neden?" günlüğü |
+| Diplomasi | İlişki (başlangıç değerleri ve hediye dahil), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve onay penceresi, "Neden?" günlüğü |
 | Yapay zekâ | 2 kişilik: Tüccar ve Yayılmacı. Tüccar MVP'de Ticaret Anlaşması yerine Saldırmazlık Paktı teklif eder ve Anıt yerine Kadim Harabe'yi hedefler. |
 | Hedef | Kadim Harabe (tek kalıntı) |
 | Zafer | Fetih ya da Kadim Harabe'yi 3 dk tutmak |
@@ -550,7 +552,7 @@ Zorluk, yapay zekâya haksız avantaj vererek değil; karar kalitesi, tempo ve y
 **Halk hissi — zorunlu kapsam.** Özel birim ve binalar MVP'de yoktur; bu yüzden iki halkın farkı yüzdelik bonusla bırakılmaz. Her birine ekranda görülen bir imza mekaniği verilir:
 
 - **Külboyları — Ganimet Yağması.** Kamp temizlenince kaynaklar görsel ve sesli bir patlamayla anında düşer. Oyuncu çiftlik yerine avlanarak büyür.
-- **Sancaklılar — Sancak Kervanı.** Yürürlükteki her pakt için iki üs arasında gidip gelen, haritada görünen bir kervan düzenli kristal getirir. Oyuncu anlaşarak büyür; pakt bozulursa kervan durur. Sancak Kervanı tam oyunda Ticaret Anlaşması'yla, MVP'de ise (Ticaret Anlaşması kapsam dışı olduğu için) Saldırmazlık Paktı'yla çalışır.
+- **Sancaklılar — Sancak Kervanı.** Yürürlükteki her pakt için iki üs arasında gidip gelen, haritada görünen bir kervan pakt başına **18 kristal/dk** getirir; MVP'de bunun için bina gerekmez. Oyuncu anlaşarak büyür; pakt bozulursa kervan durur. Sancak Kervanı tam oyunda Ticaret Anlaşması'yla, MVP'de ise (Ticaret Anlaşması kapsam dışı olduğu için) Saldırmazlık Paktı'yla çalışır.
 
 **Kapsam dışı (sonraya):** Çağ III–IV, taş, kuşatma ve büyücü, sur ve kuleler, harita olayları, Büyük Anıt, Ticaret Anlaşması ve Askeri İttifak, kahraman yetenekleri, özel birim ve özel binalar, Yaprakdiller ve Taşocaklılar, diğer zorluklar, öğretici görevler, tam Strateji Karnesi.
 

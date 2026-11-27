@@ -11,7 +11,7 @@ Dört halktan birini seç, barış süresinde üssünü kur ve haritayı keşfet
 
 ## Durum
 
-Dijital MVP'nin beş geliştirme adımının ([GDD bölüm 6.4](docs/GDD.md)) kodu yazıldı. İki halk yapay zekâ maçlarında hedef aralıkta, ancak Tüccar kişiliği üçlü maçlarda baskın ([rapor](docs/denge-raporu.md)); çocuklarla oyun testi yapılmadı. Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe, iki zafer yolu, iki kişilikli yapay zekâ (Tüccar, Yayılmacı), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve koalisyon, "Neden?" günlüğü ve Sancak Kervanı.
+Dijital MVP'nin beş geliştirme adımının ([GDD bölüm 6.4](docs/GDD.md)) kodu yazıldı. İki halk yapay zekâ–yapay zekâ maçlarında hedef aralıkta (kırılgan bir denge; sayılara çok hassas), Tüccar kişiliği ise üçlü maçlarda baskın ([rapor](docs/denge-raporu.md)); çocuklarla oyun testi yapılmadı. Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe, iki zafer yolu, iki kişilikli yapay zekâ (Tüccar, Yayılmacı), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve koalisyon, "Neden?" günlüğü ve Sancak Kervanı.
 
 ## Çalıştırma
 

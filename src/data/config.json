@@ -165,7 +165,7 @@
     "giftAmount": 100,
     "relicRelation": 10,
     "offerSeconds": 45,
-    "caravanPerMinute": 5
+    "caravanPerMinute": 3
   },
   "ai": {
     "thinkSeconds": 2,

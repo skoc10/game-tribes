@@ -28,13 +28,20 @@ if (o.caravan !== undefined) CFG.diplomacy.caravanPerMinute = o.caravan;
 if (o.crystalEnough !== undefined) CFG.ai.crystalEnough = o.crystalEnough;
 if (o.sancakCost !== undefined) RACES.sancak.unitCost['*'] = o.sancakCost;
 
+const SHORT = ['kulCost', 'kulTrain', 'farm', 'cavalry', 'sancakCost', 'campLoot', 'caravan', 'edge', 'relicArmy', 'notice', 'hold', 'crystalEnough'];
+for (const key of Object.keys(o)) if (!key.includes('.') && !SHORT.includes(key)) throw new Error(`Unknown override "${key}"`);
+
 // Dotted keys reach any value: e.g. {"RACES.kul.loot": false, "CFG.loot.unit": 0}.
 for (const [key, value] of Object.entries(o as Record<string, unknown>)) {
   if (!key.includes('.')) continue;
   const path = key.split('.');
+  if (path[0] !== 'RACES' && path[0] !== 'CFG') throw new Error(`Override "${key}" must start with RACES. or CFG.`);
   let target: Record<string, unknown> = (path[0] === 'RACES' ? RACES : CFG) as unknown as Record<string, unknown>;
   for (const part of path.slice(1, -1)) target = target[part] as Record<string, unknown>;
-  target[path[path.length - 1]] = value;
+  const leaf = path[path.length - 1];
+  // A misspelt key must fail loudly, not quietly measure the unchanged game.
+  if (!target || !(leaf in target)) throw new Error(`Override "${key}" does not match any existing value`);
+  target[leaf] = value;
 }
 
 const out: string[] = [];

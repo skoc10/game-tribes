@@ -65,6 +65,8 @@ export class Hud {
       `<span class="stat">Çağ ${p.age}</span>`,
       this.extraTop(v),
       `<span class="grow"></span>`,
+      `<button data-act="hero">⭐ Kahraman ${p.heroRespawn >= 0 ? `(${Math.max(0, Math.ceil(p.heroRespawn - v.s.time))} sn)` : `Sv. ${p.heroLevel}`}</button>`,
+      `<button data-act="army">⚔ Tüm askerler</button>`,
       idle > 0 ? `<button data-act="idle" class="warn">💤 Boşta köylü: ${idle}</button>` : '',
       `<span class="stat">⏱ ${clock(v.s.time)}</span>`,
       `<button data-act="pause" class="${v.paused ? 'on' : ''}">${v.paused ? '▶ Devam' : '⏸ Duraklat'}</button>`,
@@ -98,10 +100,11 @@ export class Hud {
     }
     const units = v.selUnits.map((id) => unitById(s, id)).filter((u) => !!u);
     if (units.length === 0)
-      return `<span class="help">Sol tık / sürükle: seç · Sağ tık: git, topla, kur · Ok tuşları veya WASD: kamera · Tekerlek: yakınlaş · Boşluk: duraklat</span>`;
+      return `<span class="help">Sol tık / sürükle: seç · Sağ tık: git, topla, kur, saldır · Shift+sağ tık: saldırarak ilerle · Q: ordu · H: kahraman · Ok tuşları veya WASD: kamera · Tekerlek: yakınlaş · Boşluk: duraklat</span>`;
     const counts = new Map<string, number>();
     for (const u of units) counts.set(u.type, (counts.get(u.type) ?? 0) + 1);
     const parts = [`<span><b>${[...counts].map(([t, n]) => `${n} ${UNITS[t].name}`).join(', ')}</b><br>${RACES[p.race].name}</span>`];
+    if (counts.has('scout')) parts.push(`<button data-act="explore">🧭 Otomatik keşfet<small>kamplara girmez</small></button>`);
     if (counts.has('villager')) {
       for (const [id, def] of Object.entries(BUILDINGS)) {
         if (def.age > p.age) continue;

@@ -2,12 +2,101 @@
   "mapSize": 64,
   "tickRate": 10,
   "popMax": 60,
-  "startResources": { "food": 200, "wood": 200, "crystal": 0 },
+  "startResources": {
+    "food": 200,
+    "wood": 200,
+    "crystal": 0
+  },
   "startVillagers": 4,
-  "gatherPerMinute": { "food": 28, "wood": 28, "crystal": 18 },
+  "gatherPerMinute": {
+    "food": 28,
+    "wood": 28,
+    "crystal": 18
+  },
   "farmPerMinute": 26,
-  "nodeAmount": { "tree": 150, "bush": 250, "crystal": 300 },
+  "nodeAmount": {
+    "tree": 150,
+    "bush": 250,
+    "crystal": 300
+  },
   "autoSwitchRadius": 12,
   "queueMax": 5,
-  "autoVillagerMax": 30
+  "autoVillagerMax": 30,
+  "combat": {
+    "cooldown": 1.5,
+    "aggro": 4,
+    "chase": 10,
+    "multipliers": {
+      "infantry": {
+        "cavalry": 1.5,
+        "archer": 0.75
+      },
+      "archer": {
+        "infantry": 1.5,
+        "cavalry": 0.75
+      },
+      "cavalry": {
+        "archer": 1.5,
+        "infantry": 0.75
+      }
+    },
+    "vsBuilding": {
+      "infantry": 0.5,
+      "archer": 0.25,
+      "cavalry": 0.5,
+      "hero": 0.5,
+      "villager": 0.25,
+      "beast": 0.5
+    }
+  },
+  "camp": {
+    "respawn": 180,
+    "maxTier": 3,
+    "aggro": 4,
+    "leash": 9,
+    "count": [
+      3,
+      5,
+      7
+    ],
+    "scale": [
+      1,
+      1.4,
+      1.8
+    ],
+    "loot": [
+      {
+        "food": 60,
+        "wood": 40,
+        "crystal": 0
+      },
+      {
+        "food": 100,
+        "wood": 60,
+        "crystal": 20
+      },
+      {
+        "food": 150,
+        "wood": 80,
+        "crystal": 40
+      }
+    ],
+    "exploreAvoid": 6
+  },
+  "loot": {
+    "unit": 0.15,
+    "building": 0.2
+  },
+  "hero": {
+    "xpPerLevel": 40,
+    "xpBeast": 12,
+    "xpUnit": 10,
+    "xpHero": 40,
+    "xpRadius": 8,
+    "levelBonus": 0.1,
+    "maxLevel": 10,
+    "respawnBase": 30,
+    "respawnPerLevel": 10
+  },
+  "fogInterval": 5
 }

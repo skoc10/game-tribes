@@ -1,46 +1,14 @@
-import { BUILDINGS, CFG, DT, RACES, UNITS } from './data';
+import { nearLiveCamp, stepCamps } from './camps';
+import { attackTarget, autoFight, isFighter, maxHp, stepBeast } from './combat';
 import { issue, setOrder } from './commands';
-import { findPath, walkable } from './path';
+import { BUILDINGS, CFG, DT, RACES } from './data';
+import { updateFog } from './fog';
+import { besideRect, goTo } from './move';
+import { walkable } from './path';
 import { buildingById, isResource, nearestNode, spawnNear } from './state';
 import { T_BUSH, T_CRYSTAL, T_GRASS, T_TREE, type Building, type Game, type ResourceKind, type Unit } from './types';
 
 const KIND_OF: Record<number, ResourceKind> = { [T_TREE]: 'wood', [T_BUSH]: 'food', [T_CRYSTAL]: 'crystal' };
-
-/** Advances a unit along its path. Returns true once the path is finished. */
-function stepMove(s: Game, u: Unit): boolean {
-  if (!u.path) return false;
-  let left = UNITS[u.type].speed * DT;
-  while (left > 0 && u.pathIdx < u.path.length) {
-    const t = u.path[u.pathIdx];
-    const tx = t % s.w, ty = Math.floor(t / s.w);
-    if (!walkable(s, tx, ty)) { u.path = null; return false; }
-    const dx = tx + 0.5 - u.x, dy = ty + 0.5 - u.y;
-    const d = Math.hypot(dx, dy);
-    if (d <= left) { u.x = tx + 0.5; u.y = ty + 0.5; left -= d; u.pathIdx++; }
-    else { u.x += (dx / d) * left; u.y += (dy / d) * left; left = 0; }
-  }
-  return u.pathIdx >= u.path.length;
-}
-
-export type Travel = 'arrived' | 'moving' | 'blocked';
-
-/** Walks a unit towards any tile satisfying isGoal, (re)computing its path when the goal changes. */
-export function goTo(
-  s: Game, u: Unit, key: string, isGoal: (x: number, y: number) => boolean, hx: number, hy: number,
-): Travel {
-  if (u.pathKey !== key || !u.path) {
-    const path = findPath(s, Math.floor(u.x), Math.floor(u.y), isGoal, hx, hy);
-    if (!path) { u.path = null; u.pathKey = ''; return 'blocked'; }
-    u.path = path; u.pathIdx = 0; u.pathKey = key;
-  }
-  return stepMove(s, u) ? 'arrived' : 'moving';
-}
-
-/** Goal test: a walkable tile touching the rectangle (tx, ty, size). */
-export function besideRect(s: Game, tx: number, ty: number, size: number) {
-  return (x: number, y: number) => x >= tx - 1 && x <= tx + size && y >= ty - 1 && y <= ty + size
-    && !(x >= tx && x < tx + size && y >= ty && y < ty + size);
-}
 
 function stepGather(s: Game, u: Unit, tile: number, terrain: number): void {
   if (s.terrain[tile] !== terrain || s.amount[tile] <= 0) {
@@ -49,7 +17,7 @@ function stepGather(s: Game, u: Unit, tile: number, terrain: number): void {
     return setOrder(u, next >= 0 ? { kind: 'gather', tile: next, terrain } : { kind: 'idle' });
   }
   const tx = tile % s.w, ty = Math.floor(tile / s.w);
-  const state = goTo(s, u, `g${tile}`, besideRect(s, tx, ty, 1), tx, ty);
+  const state = goTo(s, u, `g${tile}`, besideRect(tx, ty, 1), tx, ty);
   if (state === 'blocked') return setOrder(u, { kind: 'idle' });
   if (state !== 'arrived') return;
   const kind = KIND_OF[terrain];
@@ -74,7 +42,7 @@ function stepFarm(s: Game, u: Unit, b: Building | undefined): void {
     }
   }
   b.worker = u.id;
-  const state = goTo(s, u, `f${b.id}`, besideRect(s, b.tx, b.ty, 2), b.tx + 1, b.ty + 1);
+  const state = goTo(s, u, `f${b.id}`, besideRect(b.tx, b.ty, BUILDINGS.farm.size), b.tx + 1, b.ty + 1);
   if (state === 'blocked') { b.worker = 0; return setOrder(u, { kind: 'idle' }); }
   if (state !== 'arrived') return;
   const p = s.players[u.owner];
@@ -85,7 +53,7 @@ function stepBuild(s: Game, u: Unit, b: Building | undefined): void {
   if (!b) return setOrder(u, { kind: 'idle' });
   if (b.progress >= 1) return setOrder(u, b.type === 'farm' ? { kind: 'farm', building: b.id } : { kind: 'idle' });
   const def = BUILDINGS[b.type];
-  const state = goTo(s, u, `b${b.id}`, besideRect(s, b.tx, b.ty, def.size), b.tx + def.size / 2, b.ty + def.size / 2);
+  const state = goTo(s, u, `b${b.id}`, besideRect(b.tx, b.ty, def.size), b.tx + def.size / 2, b.ty + def.size / 2);
   if (state === 'blocked') return setOrder(u, { kind: 'idle' });
   if (state !== 'arrived') return;
   const inc = DT / def.buildTime;
@@ -94,17 +62,57 @@ function stepBuild(s: Game, u: Unit, b: Building | undefined): void {
   if (b.progress >= 1) s.mapVersion++;
 }
 
+/** Walks to a point; if the tile itself is blocked, stops beside it. Returns true while still travelling. */
+function travel(s: Game, u: Unit, x: number, y: number, prefix: string): boolean {
+  const tx = Math.floor(x), ty = Math.floor(y);
+  // A point inside a building means "go stand beside that building".
+  const b = buildingById(s, s.occ[ty * s.w + tx] ?? 0);
+  const goal = walkable(s, tx, ty) ? (gx: number, gy: number) => gx === tx && gy === ty
+    : b ? besideRect(b.tx, b.ty, BUILDINGS[b.type].size) : besideRect(tx, ty, 1);
+  return goTo(s, u, `${prefix}${tx},${ty}`, goal, tx, ty) === 'moving';
+}
+
+/** Scouts head for the nearest unexplored walkable tile, steering around live camps. */
+function stepExplore(s: Game, u: Unit, skip: number[]): void {
+  const explored = s.fog[u.owner].explored;
+  const nearCamp = (x: number, y: number) => nearLiveCamp(s, x + 0.5, y + 0.5);
+  // Keep following the current path while its destination is still unknown.
+  if (u.path && u.pathIdx < u.path.length && !explored[u.path[u.path.length - 1]]) {
+    if (goTo(s, u, u.pathKey, () => false, 0, 0) === 'moving') return;
+  }
+  let best = -1, bestD = Infinity;
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+    const i = y * s.w + x;
+    if (explored[i] || !walkable(s, x, y) || nearCamp(x, y) || skip.includes(i)) continue;
+    const d = (x - u.x) ** 2 + (y - u.y) ** 2;
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  if (best < 0) return setOrder(u, { kind: 'idle' });
+  const bx = best % s.w, by = Math.floor(best / s.w);
+  // A scout that starts inside a camp's circle is safe there; let it walk out before avoiding camps.
+  const avoid = nearCamp(Math.floor(u.x), Math.floor(u.y)) ? undefined : nearCamp;
+  if (goTo(s, u, `x${best}`, (x, y) => x === bx && y === by, bx, by, avoid) === 'blocked') skip.push(best);
+}
+
 function stepUnit(s: Game, u: Unit): void {
+  u.cooldown = Math.max(0, u.cooldown - DT);
+  if (u.owner < 0) return stepBeast(s, u);
   const o = u.order;
   switch (o.kind) {
-    case 'idle': return;
-    case 'move': {
-      const tx = Math.floor(o.x), ty = Math.floor(o.y);
-      const exact = walkable(s, tx, ty);
-      const goal = exact ? (x: number, y: number) => x === tx && y === ty : besideRect(s, tx, ty, 1);
-      if (goTo(s, u, `m${tx},${ty}`, goal, tx, ty) !== 'moving') setOrder(u, { kind: 'idle' });
+    case 'idle':
+      if (isFighter(u)) autoFight(s, u);
       return;
-    }
+    case 'move':
+      if (!travel(s, u, o.x, o.y, 'm')) setOrder(u, { kind: 'idle' });
+      return;
+    case 'attackMove':
+      if (autoFight(s, u)) return;
+      if (!travel(s, u, o.x, o.y, 'am')) setOrder(u, { kind: 'idle' });
+      return;
+    case 'attack':
+      if (!attackTarget(s, u, o.target, o.building)) setOrder(u, { kind: 'idle' });
+      return;
+    case 'explore': return stepExplore(s, u, o.skip);
     case 'gather': return stepGather(s, u, o.tile, o.terrain);
     case 'farm': return stepFarm(s, u, buildingById(s, o.building));
     case 'build': return stepBuild(s, u, buildingById(s, o.building));
@@ -134,10 +142,28 @@ function stepBuilding(s: Game, b: Building): void {
   }
 }
 
+/** Fallen heroes return at their owner's Ana Merkez once the respawn timer runs out. */
+function stepHeroes(s: Game): void {
+  for (const p of s.players) {
+    if (!p.alive || p.heroRespawn < 0 || s.time < p.heroRespawn) continue;
+    const tc = s.buildings.find((b) => b.owner === p.id && b.type === 'towncenter' && b.progress >= 1);
+    if (!tc) continue;
+    const hero = spawnNear(s, tc, 'hero');
+    if (!hero) continue;
+    hero.scale = 1 + CFG.hero.levelBonus * (p.heroLevel - 1);
+    hero.hp = maxHp(hero);
+    p.heroRespawn = -1;
+  }
+}
+
 /** Advances the simulation by one fixed tick. */
 export function step(s: Game): void {
   s.tick++;
   s.time = s.tick * DT;
   for (const b of s.buildings.slice()) stepBuilding(s, b);
-  for (const u of s.units.slice()) stepUnit(s, u);
+  // A unit killed earlier in this tick must not act.
+  for (const u of s.units.slice()) if (u.hp > 0) stepUnit(s, u);
+  stepCamps(s);
+  stepHeroes(s);
+  if (s.tick % CFG.fogInterval === 0) updateFog(s);
 }

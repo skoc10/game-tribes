@@ -1,4 +1,6 @@
 import { BUILDINGS, CFG, RACES, UNITS } from './data';
+import { spawnCamp } from './camps';
+import { updateFog } from './fog';
 import { inBounds, walkable } from './path';
 import {
   T_BUSH, T_CRYSTAL, T_GRASS, T_TREE,
@@ -17,8 +19,8 @@ export function buildingById(s: Game, id: number): Building | undefined {
   return s.buildings.find((b) => b.id === id);
 }
 
-export function log(s: Game, player: number, kind: string, text: string): void {
-  s.events.push({ time: s.time, player, kind, text });
+export function log(s: Game, player: number, kind: string, text: string, x?: number, y?: number): void {
+  s.events.push({ time: s.time, player, kind, text, x, y });
 }
 
 function placeNode(s: Game, x: number, y: number, terrain: number, amount: number): void {
@@ -42,6 +44,8 @@ export function canPlace(s: Game, type: string, tx: number, ty: number): boolean
   const size = BUILDINGS[type].size;
   for (let y = ty; y < ty + size; y++)
     for (let x = tx; x < tx + size; x++) if (!walkable(s, x, y)) return false;
+  // Camp sites stay clear so creatures always have somewhere to return to.
+  if (s.camps.some((c) => c.x > tx - 3 && c.x < tx + size + 3 && c.y > ty - 3 && c.y < ty + size + 3)) return false;
   // A unit standing inside the footprint would be walled in.
   return !s.units.some((u) => u.x >= tx && u.x < tx + size && u.y >= ty && u.y < ty + size);
 }
@@ -70,6 +74,7 @@ export function addUnit(s: Game, owner: number, type: string, x: number, y: numb
   const u: Unit = {
     id: s.nextId++, owner, type, x, y, hp: UNITS[type].hp,
     order: { kind: 'idle' }, path: null, pathIdx: 0, pathKey: '',
+    cooldown: 0, target: 0, scale: 1, camp: -1,
   };
   s.units.push(u);
   return u;
@@ -102,6 +107,7 @@ export function createGame(opts: GameOptions): Game {
     occ: new Int32Array(size * size), mapVersion: 0,
     units: [], buildings: [], players: [], nextId: 1, events: [],
     bases: [], center: { x: size / 2, y: size / 2 },
+    camps: [], fog: [], fogVersion: 0, war: [],
   };
   const n = opts.players.length;
   const cx = size / 2, cy = size / 2, R = size * 0.31;
@@ -109,8 +115,10 @@ export function createGame(opts: GameOptions): Game {
   opts.players.forEach((setup, i) => {
     s.players.push({
       id: i, race: setup.race, name: setup.name ?? RACES[setup.race].name, isAI: setup.isAI,
-      res: { ...CFG.startResources }, age: 1, alive: true,
+      res: { ...CFG.startResources }, age: 1, alive: true, heroLevel: 1, heroXp: 0, heroRespawn: -1,
     });
+    s.fog.push({ explored: new Uint8Array(size * size), visible: new Uint8Array(size * size) });
+    s.war.push(opts.players.map(() => false));
     const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
     const bx = Math.round(cx + Math.cos(ang) * R), by = Math.round(cy + Math.sin(ang) * R);
     s.bases.push({ x: bx, y: by });
@@ -132,7 +140,13 @@ export function createGame(opts: GameOptions): Game {
     for (let v = 0; v < CFG.startVillagers; v++) spawnNear(s, tc, 'villager');
     spawnNear(s, tc, 'scout');
     spawnNear(s, tc, 'hero');
+    // One camp beside each base and one between each pair of neighbours.
+    const near = at(5, -12);
+    const between = { x: cx + Math.cos(ang + Math.PI / n) * R, y: cy + Math.sin(ang + Math.PI / n) * R };
+    for (const c of [near, between]) s.camps.push({ x: Math.round(c.x) + 0.5, y: Math.round(c.y) + 0.5, tier: 1, alive: 0, respawnAt: -1 });
   });
+  s.camps.forEach((_, i) => spawnCamp(s, i));
+  updateFog(s);
   return s;
 }
 

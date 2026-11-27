@@ -11,7 +11,7 @@ Dört halktan birini seç, barış süresinde üssünü kur ve haritayı keşfet
 
 ## Durum
 
-Dijital MVP geliştiriliyor ([GDD bölüm 6](docs/GDD.md)). Şu an çalışan: harita, köylüler, kaynak toplama, bina kurma, birim üretimi ve nüfus.
+Dijital MVP geliştiriliyor ([GDD bölüm 6](docs/GDD.md)). Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi ve Külboyları ganimeti.
 
 ## Çalıştırma
 

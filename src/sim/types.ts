@@ -68,7 +68,9 @@ export interface Building {
 }
 
 export interface Player {
-  id: number; race: RaceId; name: string; isAI: boolean; res: Resources; age: number; alive: boolean;
+  id: number; race: RaceId; name: string; isAI: boolean;
+  /** AI temperament; empty for a human. */
+  personality: Personality; res: Resources; age: number; alive: boolean;
   heroLevel: number; heroXp: number;
   /** Game time at which a fallen hero returns, -1 while alive. */
   heroRespawn: number;
@@ -101,6 +103,42 @@ export interface Game {
   /** Winning player once the match is decided, -1 before that. */
   winner: number;
   winKind: '' | 'conquest' | 'relic';
+  diplo: Diplo;
+  ai: AIState[];
+}
+
+export interface Pact {
+  until: number;
+  /** Game time at which an announced termination takes effect, -1 if none. */
+  endsAt: number;
+  /** Player who gave notice, -1 if none. */
+  endedBy: number;
+}
+
+export interface Diplo {
+  /** Symmetric relation between two players, -100..100. */
+  relation: number[][];
+  /** Public trust score per player, 0..100. */
+  trust: number[];
+  pacts: (Pact | null)[][];
+  /** Until when a player is branded a traitor and cannot make agreements. */
+  traitorUntil: number[];
+  /** Until when the others stand united against a player. */
+  coalitionUntil: number[];
+  giftWindow: { start: number; relation: number }[][];
+  giftTrustAt: number[];
+  /** Pact offers waiting for a human answer. */
+  offers: { from: number; to: number; expires: number }[];
+}
+
+export interface AIState {
+  nextThink: number; nextStrategy: number;
+  /** Player this AI is marching against, -1 if none. */
+  enemy: number;
+  goal: 'none' | 'attack' | 'relic';
+  /** Per-match temperament, 0.8..1.2: scales how large an army this AI wants before it moves. */
+  nerve: number;
+  lastOffer: number[];
 }
 
 export interface Relic {
@@ -114,5 +152,6 @@ export interface Relic {
   heldSince: number;
 }
 
-export interface PlayerSetup { race: RaceId; isAI: boolean; name?: string }
+export type Personality = '' | 'trader' | 'expander';
+export interface PlayerSetup { race: RaceId; isAI: boolean; name?: string; personality?: Personality }
 export interface GameOptions { seed: number; players: PlayerSetup[]; peaceSeconds?: number }

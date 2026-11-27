@@ -137,5 +137,51 @@
       "time": 30,
       "text": "Askerlerin aldığı hasar −1"
     }
+  },
+  "diplomacy": {
+    "startTrust": 60,
+    "bias": {
+      "trader": 25,
+      "expander": -10
+    },
+    "pactRelation": 20,
+    "pactTrust": 30,
+    "pactSeconds": 300,
+    "noticeSeconds": 60,
+    "noticePenalty": 5,
+    "betrayalTrust": 25,
+    "betrayalVictim": 80,
+    "betrayalOthers": 30,
+    "traitorSeconds": 300,
+    "coalitionTrust": 25,
+    "coalitionSeconds": 300,
+    "warRelation": 40,
+    "pactKeptTrust": 5,
+    "trustPerMinute": 1,
+    "giftTrust": 3,
+    "giftWindow": 180,
+    "giftPerRelation": 20,
+    "giftRelationMax": 15,
+    "giftAmount": 100,
+    "relicRelation": 10,
+    "offerSeconds": 45,
+    "caravanPerMinute": 18
+  },
+  "ai": {
+    "thinkSeconds": 2,
+    "strategySeconds": 20,
+    "villagers": 22,
+    "armyPeace": 6,
+    "armyWar": 18,
+    "attackArmy": 10,
+    "relicArmy": 8,
+    "retreatArmy": 3,
+    "defendRadius": 11,
+    "relicAlarm": 181,
+    "campArmy": [
+      4,
+      8,
+      14
+    ]
   }
 }

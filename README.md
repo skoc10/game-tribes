@@ -11,7 +11,7 @@ Dört halktan birini seç, barış süresinde üssünü kur ve haritayı keşfet
 
 ## Durum
 
-Dijital MVP geliştiriliyor ([GDD bölüm 6](docs/GDD.md)). Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe ve iki zafer yolu.
+Dijital MVP geliştiriliyor ([GDD bölüm 6](docs/GDD.md)). Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe, iki zafer yolu, iki kişilikli yapay zekâ (Tüccar, Yayılmacı), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve koalisyon, "Neden?" günlüğü ve Sancak Kervanı.
 
 ## Çalıştırma
 
@@ -20,6 +20,7 @@ npm install
 npm run dev     # oyunu tarayıcıda açar
 npm test        # simülasyon testleri
 npm run build   # tip denetimi + üretim derlemesi
+npm run simulate  # ekransız yapay zekâ maçları ve kazanma oranları
 ```
 
 ## Yapı
@@ -28,6 +29,7 @@ npm run build   # tip denetimi + üretim derlemesi
 - `src/sim/` — deterministik oyun simülasyonu; görüntüden bağımsızdır ve ekransız çalıştırılabilir.
 - `src/render/` — Phaser 3 sahnesi ve arayüz.
 - `tests/` — simülasyon testleri.
+- `scripts/simulate.ts` — yapay zekâ–yapay zekâ maçlarıyla denge ölçümü.
 
 ## Dokümanlar
 

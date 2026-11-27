@@ -11,7 +11,7 @@ Dört halktan birini seç, barış süresinde üssünü kur ve haritayı keşfet
 
 ## Durum
 
-Dijital MVP'nin beş geliştirme adımı ([GDD bölüm 6.4](docs/GDD.md)) tamamlandı; çocuklarla oyun testi henüz yapılmadı. Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe, iki zafer yolu, iki kişilikli yapay zekâ (Tüccar, Yayılmacı), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve koalisyon, "Neden?" günlüğü ve Sancak Kervanı.
+Dijital MVP'nin beş geliştirme adımının ([GDD bölüm 6.4](docs/GDD.md)) kodu yazıldı. İki halkın yapay zekâ maçlarındaki dengesi henüz hedef aralıkta değil ([rapor](docs/denge-raporu.md)) ve çocuklarla oyun testi yapılmadı. Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe, iki zafer yolu, iki kişilikli yapay zekâ (Tüccar, Yayılmacı), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve koalisyon, "Neden?" günlüğü ve Sancak Kervanı.
 
 ## Çalıştırma
 

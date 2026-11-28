@@ -197,10 +197,12 @@
       "villagers": 12,
       "villagerEvery": 28,
       "armyPeace": 3,
-      "armyWar": 12,
+      "armyWar": 10,
       "helper": true,
       "ageUpAfter": 420,
-      "buildEvery": 30
+      "buildEvery": 30,
+      "quietAfterPeace": 240,
+      "helperVillagers": 14
     },
     "kasif": {
       "name": "Kâşif",
@@ -209,10 +211,12 @@
       "villagers": 17,
       "villagerEvery": 16,
       "armyPeace": 5,
-      "armyWar": 20,
+      "armyWar": 16,
       "helper": true,
       "ageUpAfter": 300,
-      "buildEvery": 12
+      "buildEvery": 12,
+      "quietAfterPeace": 120,
+      "helperVillagers": 14
     },
     "komutan": {
       "name": "Komutan",
@@ -224,7 +228,9 @@
       "armyWar": 30,
       "helper": false,
       "ageUpAfter": 0,
-      "buildEvery": 0
+      "buildEvery": 0,
+      "quietAfterPeace": 0,
+      "helperVillagers": 0
     }
   }
 }

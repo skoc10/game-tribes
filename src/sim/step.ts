@@ -1,7 +1,8 @@
 import { stepAI } from './ai';
 import { nearLiveCamp, stepCamps } from './camps';
 import { acquireTargets, attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast, strikeAfterMoving } from './combat';
-import { issue, sendToWork, setOrder } from './commands';
+import { issue, setOrder } from './commands';
+import { helped, sendToWork, stepHelper } from './helper';
 import { BUILDINGS, CFG, DT, RACES } from './data';
 import { updateFog } from './fog';
 import { spreadIdle } from './formation';
@@ -124,9 +125,6 @@ function stepUnit(s: Game, u: Unit): void {
   }
 }
 
-/** Human players on the easier levels have their villagers put to work for them. */
-const helped = (s: Game, player: number): boolean => !s.players[player].isAI && CFG.difficulty[s.difficulty].helper;
-
 function stepBuilding(s: Game, b: Building): void {
   if (b.progress < 1) return;
   if (b.worker !== 0) {
@@ -147,7 +145,9 @@ function stepBuilding(s: Game, b: Building): void {
     }
   } else if (b.autoVillager && b.type === 'towncenter') {
     const villagers = s.units.reduce((n, u) => n + (u.owner === b.owner && u.type === 'villager' ? 1 : 0), 0);
-    if (villagers < CFG.autoVillagerMax) issue(s, b.owner, { type: 'train', building: b.id, unit: 'villager' });
+    // The helper stops early, so it does not eat the food a new player needs for soldiers and the next age.
+    const max = helped(s, b.owner) ? CFG.difficulty[s.difficulty].helperVillagers : CFG.autoVillagerMax;
+    if (villagers < max) issue(s, b.owner, { type: 'train', building: b.id, unit: 'villager' });
   }
 }
 
@@ -170,7 +170,7 @@ export function step(s: Game): void {
   if (s.winner >= 0) return;
   s.tick++;
   s.time = s.tick * DT;
-  if (s.tick === 1) for (const u of s.units.slice()) if (u.type === 'villager' && u.owner >= 0 && helped(s, u.owner)) sendToWork(s, u);
+  stepHelper(s);
   stepAI(s);
   for (const b of s.buildings.slice()) stepBuilding(s, b);
   // Everyone alive at the start of the tick acts; those brought down are removed afterwards, so

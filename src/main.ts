@@ -25,11 +25,13 @@ function opponents(race: RaceId): PlayerSetup[] {
   return [trader, expander].map((p) => ({ race: p.race, isAI: true, personality: p.personality, name: `${RACE_BLURB[p.race].title} (${p.label})` }));
 }
 
+const HELP = 'Köylülerin kendiliğinden işe gider; Ana Merkez 14 köylüye kadar kendisi üretir (nüfus dolunca Ev kurman gerekir).';
 const LEVEL_TEXT: Record<Difficulty, string> = {
-  cirak: 'Komşular ağır gelişir, orduları küçük kalır. Barış 10 dakika. Köylülerin kendiliğinden üretilir ve işe gider.',
-  kasif: 'Komşular orta hızda gelişir. Barış 8 dakika. Köylülerin kendiliğinden üretilir ve işe gider.',
-  komutan: 'Komşular tam hızda oynar. Barış 8 dakika. Yardım yok.',
+  cirak: `Komşular ağır gelişir, orduları küçük kalır ve barış bitince bir süre yerlerinde durur. ${HELP}`,
+  kasif: `Komşular orta hızda gelişir. ${HELP}`,
+  komutan: 'Komşular tam hızda oynar. Yardım yok.',
 };
+const levelText = (d: Difficulty): string => `${LEVEL_TEXT[d]} Barış ${CFG.difficulty[d].peaceSeconds / 60} dakika.`;
 let difficulty: Difficulty = 'cirak';
 
 function start(race: RaceId): void {
@@ -56,7 +58,7 @@ const menu = document.getElementById('menu')!;
 function renderMenu(): void {
   const levels = (Object.keys(LEVEL_TEXT) as Difficulty[]).map((d) =>
     `<button data-level="${d}" class="${d === difficulty ? 'on' : ''}">${CFG.difficulty[d].name}</button>`).join('');
-  menu.innerHTML = `<h1>Boylar: Kadim Miras</h1><div>Zorluk</div><div class="levels">${levels}</div><div class="help">${LEVEL_TEXT[difficulty]}</div><div>Halkını seç</div><div class="races">${
+  menu.innerHTML = `<h1>Boylar: Kadim Miras</h1><div>Zorluk</div><div class="levels">${levels}</div><div class="help">${levelText(difficulty)}</div><div>Halkını seç</div><div class="races">${
     (Object.keys(RACE_BLURB) as RaceId[]).map((r) => {
       const b = RACE_BLURB[r];
       return `<button class="race" data-race="${r}"><b>${b.title}${b.note ? ` <span class="tag">${b.note}</span>` : ''}</b>${b.text}<ul>${b.perks.map((p) => `<li>${p}</li>`).join('')}</ul></button>`;

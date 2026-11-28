@@ -29,7 +29,7 @@ interface View {
 const has = (v: View, type: string, done = false): Building | undefined =>
   v.mine.find((b) => b.type === type && (!done || b.progress >= 1));
 
-function look(s: Game, me: number): View {
+export function look(s: Game, me: number): View {
   const units = s.units.filter((u) => u.owner === me);
   return {
     s, me, base: s.bases[me],
@@ -41,7 +41,7 @@ function look(s: Game, me: number): View {
 }
 
 /** A free site near the base with a clear ring around it, so buildings never seal anything in. */
-function findSite(v: View, type: string): { tx: number; ty: number } | null {
+export function findSite(v: View, type: string): { tx: number; ty: number } | null {
   const { s, base } = v, size = BUILDINGS[type].size;
   // Sites are ranked only by quantities that turn with the base (distance from the map centre, from
   // camps, and position relative to the base's own facing), never by scan order. Otherwise mirrored
@@ -332,6 +332,9 @@ function strategy(v: View): void {
     breakStandOff(v);
     return;
   }
+
+  // Easier levels leave the player alone for a while after the horn: no march of its own choosing yet.
+  if (s.time < s.peaceEnd + level(s).quietAfterPeace) { st.goal = 'none'; return; }
 
   if (p.personality === 'trader') {
     // The trader wants the relic, and fights only those already at war with it.

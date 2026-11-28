@@ -62,6 +62,14 @@ Birim indirimi beklenmedik biçimde doğrusal değil (%3 indirim, %5'ten de %0'd
 6. **Yapay zekâ keşif yapmadan düşman binalarının yerini ve ordu gücünü biliyor.**
 7. **İnsan oyuncuyla ölçüm yok.** Tüm sayılar yapay zekâ–yapay zekâ maçlarından gelir; yapay zekâ aynalarında küçük farklar kartopu etkisiyle büyür, insan maçları bu kadar kırılgan olmayabilir. GDD 6.3'teki diğer ölçütler çocuklarla oyun testi gerektirir ve yapılmadı. Sıradaki adım budur.
 
+## Bu rapordan sonra değişenler (ölçülmedi)
+
+Denge çalışması durdurulduktan sonra şunlar eklendi; hiçbiri için yeni ölçüm yapılmadı, dolayısıyla yukarıdaki yüzdeler bugünkü kodu tam yansıtmayabilir:
+
+- Yaprakdiller ve Taşocaklılar seçilebilir oldu (okçu menzili +1 ve birim canı −%10; piyade zırhı +1, bina canı +%20, hız −%10, süvari +%20 pahalı). Dengeleri hiç ölçülmedi.
+- Yapay zekâ, sahada kalan askerlerini toplanma noktasına geri yürütmek yerine savaşa geri sokuyor.
+- Yol bulmadaki eşitlik bozma düzeltildi (64 bit hassasiyet, düz çizgiden sapma normalleştirildi).
+
 ## Yeniden ölçmek için
 
 ```bash

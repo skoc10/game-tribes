@@ -1,11 +1,11 @@
-import { DT, UNITS } from './data';
+import { DT, RACES, UNITS } from './data';
 import { findPath, walkable } from './path';
 import type { Game, Unit } from './types';
 
 /** Advances a unit along its path. Returns true once the path is finished. */
 function stepMove(s: Game, u: Unit): boolean {
   if (!u.path) return false;
-  let left = UNITS[u.type].speed * DT;
+  let left = UNITS[u.type].speed * DT * (u.owner >= 0 ? RACES[s.players[u.owner].race].speed : 1);
   while (left > 0 && u.pathIdx < u.path.length) {
     const t = u.path[u.pathIdx];
     const tx = t % s.w, ty = Math.floor(t / s.w);

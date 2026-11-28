@@ -190,8 +190,14 @@ function marchTogether(v: View, x: number, y: number, first: number, reach: numb
   const there = v.army.filter((u) => dist(u.x, u.y, x, y) < reach).length;
   const waiting = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) <= 4);
   if (waiting.length >= (there > 0 ? A.campReinforce : first)) issue(s, me, { type: 'attackMove', units: waiting.map((u) => u.id), x, y });
-  const stragglers = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) > 4 && dist(u.x, u.y, x, y) >= reach).map((u) => u.id);
-  if (stragglers.length) issue(s, me, { type: 'move', units: stragglers, x: rallyX, y: rallyY });
+  // Units already out in the field rejoin the fight rather than walk home through the enemy;
+  // only those still near home gather at the rally point.
+  const loose = v.army.filter((u) => free(u) && dist(u.x, u.y, rallyX, rallyY) > 4 && dist(u.x, u.y, x, y) >= reach);
+  const forward = loose.filter((u) => dist(u.x, u.y, x, y) < dist(u.x, u.y, rallyX, rallyY)).map((u) => u.id);
+  const home = loose.filter((u) => dist(u.x, u.y, x, y) >= dist(u.x, u.y, rallyX, rallyY)).map((u) => u.id);
+  if (forward.length && there > 0) issue(s, me, { type: 'attackMove', units: forward, x, y });
+  else if (forward.length) home.push(...forward);
+  if (home.length) issue(s, me, { type: 'move', units: home, x: rallyX, y: rallyY });
 }
 
 function command(v: View): void {

@@ -14,7 +14,11 @@
     "buildingHp": 1,
     "techCost": 1,
     "loot": false,
-    "caravan": true
+    "caravan": true,
+    "unitHp": 1,
+    "speed": 1,
+    "archerRange": 0,
+    "infantryArmor": 0
   },
   "kul": {
     "name": "Külboyları",
@@ -31,6 +35,50 @@
     "buildingHp": 0.8,
     "techCost": 1.2,
     "loot": true,
-    "caravan": false
+    "caravan": false,
+    "unitHp": 1,
+    "speed": 1,
+    "archerRange": 0,
+    "infantryArmor": 0
+  },
+  "yaprak": {
+    "name": "Yaprakdiller",
+    "gather": {
+      "food": 1,
+      "wood": 1.2,
+      "crystal": 1
+    },
+    "farm": 1,
+    "unitCost": {},
+    "trainTime": 1,
+    "buildingHp": 1,
+    "techCost": 1,
+    "loot": false,
+    "caravan": false,
+    "unitHp": 0.9,
+    "speed": 1,
+    "archerRange": 1,
+    "infantryArmor": 0
+  },
+  "tasocak": {
+    "name": "Taşocaklılar",
+    "gather": {
+      "food": 1,
+      "wood": 1,
+      "crystal": 1.2
+    },
+    "farm": 1,
+    "unitCost": {
+      "cavalry": 1.2
+    },
+    "trainTime": 1,
+    "buildingHp": 1.2,
+    "techCost": 1,
+    "loot": false,
+    "caravan": false,
+    "unitHp": 1,
+    "speed": 0.9,
+    "archerRange": 0,
+    "infantryArmor": 1
   }
 }

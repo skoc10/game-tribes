@@ -10,6 +10,7 @@ export interface HudView {
   s: Game; me: number; speed: number; paused: boolean;
   selUnits: number[]; selBuilding: number; placing: string | null;
   showDiplomacy: boolean;
+  voice: { enabled: boolean };
 }
 
 const COLORS = ['#4c8dff', '#e5533d', '#e3c341', '#b565e0'];
@@ -89,6 +90,7 @@ export class Hud {
       `<button data-act="army">⚔ Tüm askerler</button>`,
       idle > 0 ? `<button data-act="idle" class="warn">💤 Boşta köylü: ${idle}</button>` : '',
       `<span class="stat">⏱ ${clock(v.s.time)}</span>`,
+      `<button data-act="sound" title="Sesli ikazlar">${v.voice.enabled ? '🔊' : '🔇'}</button>`,
       `<button data-act="pause" class="${v.paused ? 'on' : ''}">${v.paused ? '▶ Devam' : '⏸ Duraklat'}</button>`,
       speedBtn(0.5), speedBtn(1), speedBtn(1.5),
     ].join('');
@@ -132,7 +134,7 @@ export class Hud {
     }
     const units = v.selUnits.map((id) => unitById(s, id)).filter((u) => !!u);
     if (units.length === 0)
-      return `<span class="help">Sol tık / sürükle: seç · Sağ tık: git, topla, kur, saldır · Shift+sağ tık: saldırarak ilerle · Q: ordu · H: kahraman · Ok tuşları veya WASD: kamera · Tekerlek: yakınlaş · Boşluk: duraklat</span>`;
+      return `<span class="help">Sol tık / sürükle: seç · Sağ tık: git, topla, kur, saldır · Shift+sağ tık: saldırarak ilerle · Q: ordu · H: kahraman · Yabancı birliklerin altındaki halka: <b style="color:#ff4d4d">kırmızı</b> savaştasınız, <b style="color:#4ade80">yeşil</b> paktınız var, <b>beyaz</b> anlaşma yok · Ok tuşları veya WASD: kamera · Tekerlek: yakınlaş · Boşluk: duraklat</span>`;
     const counts = new Map<string, number>();
     for (const u of units) counts.set(u.type, (counts.get(u.type) ?? 0) + 1);
     const parts = [`<span><b>${[...counts].map(([t, n]) => `${n} ${UNITS[t].name}`).join(', ')}</b><br>${RACES[p.race].name}</span>`];

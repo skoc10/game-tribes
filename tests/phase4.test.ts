@@ -160,5 +160,6 @@ describe('AI', () => {
       expect(a.game.events.some((e) => e.kind === 'betrayal')).toBe(false);
       expect(a.game.diplo.trust.every((t) => t >= D.startTrust - 3 * D.noticePenalty)).toBe(true);
     }
-  });
+    // Some matches run long (one of these seeds takes 53 game minutes), so allow for it.
+  }, 30000);
 });

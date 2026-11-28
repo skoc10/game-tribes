@@ -10,6 +10,10 @@ import { canPlace, nearestNode, popCap, popUsed } from './state';
 import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type ResourceKind, type Unit } from './types';
 
 const A = CFG.ai;
+/** The level's settings: easier levels grow more slowly and keep smaller armies, with no change to the rules. */
+const level = (s: Game) => CFG.difficulty[s.difficulty];
+/** Army thresholds shrink with the level's army size, so a small army still does something with itself. */
+const scaled = (s: Game, n: number) => Math.max(3, n * (level(s).armyWar / A.armyWar));
 const TERRAIN: Record<ResourceKind, number> = { food: T_BUSH, wood: T_TREE, crystal: T_CRYSTAL };
 const KIND_OF_TERRAIN: Record<number, ResourceKind> = { [T_BUSH]: 'food', [T_TREE]: 'wood', [T_CRYSTAL]: 'crystal' };
 /** What to train against each enemy class. */
@@ -25,7 +29,7 @@ interface View {
 const has = (v: View, type: string, done = false): Building | undefined =>
   v.mine.find((b) => b.type === type && (!done || b.progress >= 1));
 
-function look(s: Game, me: number): View {
+export function look(s: Game, me: number): View {
   const units = s.units.filter((u) => u.owner === me);
   return {
     s, me, base: s.bases[me],
@@ -37,7 +41,7 @@ function look(s: Game, me: number): View {
 }
 
 /** A free site near the base with a clear ring around it, so buildings never seal anything in. */
-function findSite(v: View, type: string): { tx: number; ty: number } | null {
+export function findSite(v: View, type: string): { tx: number; ty: number } | null {
   const { s, base } = v, size = BUILDINGS[type].size;
   // Sites are ranked only by quantities that turn with the base (distance from the map centre, from
   // camps, and position relative to the base's own facing), never by scan order. Otherwise mirrored
@@ -75,11 +79,16 @@ function findSite(v: View, type: string): { tx: number; ty: number } | null {
 function build(v: View, type: string): boolean {
   const p = v.s.players[v.me];
   if (!canAfford(p, BUILDINGS[type].cost)) return false;
+  // Easier levels pause between buildings. A lost Ana Merkez is replaced without waiting.
+  const st = v.s.ai[v.me];
+  if (type !== 'towncenter' && v.s.time - st.lastBuild < level(v.s).buildEvery) return false;
   const builder = v.villagers.find((u) => u.order.kind === 'idle')
     ?? v.villagers.find((u) => u.order.kind === 'gather' && u.order.terrain === T_TREE)
     ?? v.villagers.find((u) => u.order.kind !== 'build');
   const site = builder && findSite(v, type);
-  return !!site && issue(v.s, v.me, { type: 'build', units: [builder!.id], building: type, tx: site.tx, ty: site.ty }).ok;
+  if (!site || !issue(v.s, v.me, { type: 'build', units: [builder!.id], building: type, tx: site.tx, ty: site.ty }).ok) return false;
+  st.lastBuild = v.s.time;
+  return true;
 }
 
 const jobOf = (u: Unit): ResourceKind | null =>
@@ -105,7 +114,9 @@ function economy(v: View): void {
   const { s, me } = v, p = s.players[me];
   const tc = has(v, 'towncenter', true);
   if (!has(v, 'towncenter')) { build(v, 'towncenter'); return; }
-  if (tc && tc.queue.length === 0 && v.villagers.length < A.villagers) issue(s, me, { type: 'train', building: tc.id, unit: 'villager' });
+  // Easier levels take their time between villagers: the slower start is the handicap, not cheaper or dearer goods.
+  if (tc && tc.queue.length === 0 && v.villagers.length < level(s).villagers && s.time - s.ai[me].lastVillager >= level(s).villagerEvery
+    && issue(s, me, { type: 'train', building: tc.id, unit: 'villager' }).ok) s.ai[me].lastVillager = s.time;
 
   const share: Record<ResourceKind, number> = p.age >= 2 ? { food: 0.5, wood: 0.32, crystal: 0.18 } : { food: 0.55, wood: 0.45, crystal: 0 };
   // Do not keep mining what is already piling up (Sancaklılar also get crystal from caravans).
@@ -137,7 +148,7 @@ function economy(v: View): void {
   const cap = popCap(s, me);
   if (cap < CFG.popMax && cap - popUsed(s, me) <= 3 && !v.mine.some((b) => b.type === 'house' && b.progress < 1)) build(v, 'house');
   if (!has(v, 'barracks') && v.villagers.length >= 7) build(v, 'barracks');
-  if (p.age === 1 && tc && !tc.research && v.villagers.length >= 12 && agePrereqCount(s, me) >= CFG.age2.prereq) issue(s, me, { type: 'ageUp', building: tc.id });
+  if (p.age === 1 && tc && !tc.research && s.time >= level(s).ageUpAfter && v.villagers.length >= Math.min(12, level(s).villagers) && agePrereqCount(s, me) >= CFG.age2.prereq) issue(s, me, { type: 'ageUp', building: tc.id });
   if (p.age >= 2) {
     for (const type of ['archery', 'stable', 'blacksmith']) if (!has(v, type)) { build(v, type); break; }
     const smith = has(v, 'blacksmith', true);
@@ -151,9 +162,9 @@ function economy(v: View): void {
 function recruit(v: View): void {
   const { s, me } = v, p = s.players[me];
   const queued = v.mine.reduce((n, b) => n + b.queue.filter((q) => q.unit !== 'villager').length, 0);
-  if (v.soldiers.length + queued >= (inPeace(s) ? A.armyPeace : A.armyWar)) return;
+  if (v.soldiers.length + queued >= (inPeace(s) ? level(s).armyPeace : level(s).armyWar)) return;
   // While saving for the next age, keep enough aside to pay for it.
-  const saving = p.age === 1 && v.villagers.length >= 12;
+  const saving = p.age === 1 && v.villagers.length >= Math.min(12, level(s).villagers);
   const seen: Record<string, number> = {};
   for (const u of s.units)
     if (u.owner >= 0 && u.owner !== me && isFighter(u) && isVisible(s, me, u.x, u.y)) seen[clsOf(u)] = (seen[clsOf(u)] ?? 0) + 1;
@@ -322,10 +333,13 @@ function strategy(v: View): void {
     return;
   }
 
+  // Easier levels leave the player alone for a while after the horn: no march of its own choosing yet.
+  if (s.time < s.peaceEnd + level(s).quietAfterPeace) { st.goal = 'none'; return; }
+
   if (p.personality === 'trader') {
     // The trader wants the relic, and fights only those already at war with it.
     st.enemy = -1;
-    st.goal = v.soldiers.length >= A.relicArmy * st.nerve || holder === me ? 'relic' : 'none';
+    st.goal = v.soldiers.length >= scaled(s, A.relicArmy) * st.nerve || holder === me ? 'relic' : 'none';
     if (st.goal === 'relic') breakStandOff(v);
     return;
   }
@@ -337,9 +351,9 @@ function strategy(v: View): void {
   if (s.war[me][st.enemy] && power(s, me) < power(s, st.enemy) * 0.6) { offer(s, me, st.enemy); st.goal = 'none'; return; }
   // Marching on a base favours the defender, so attack only with a clear edge; otherwise go for the relic.
   const edge = power(s, me) >= power(s, st.enemy) * A.attackEdge;
-  if (v.soldiers.length >= A.attackArmy * st.nerve && edge) {
+  if (v.soldiers.length >= scaled(s, A.attackArmy) * st.nerve && edge) {
     if (declare(s, me, st.enemy)) st.goal = 'attack';
-  } else if (st.goal !== 'attack' && v.soldiers.length >= A.relicArmy * st.nerve) {
+  } else if (st.goal !== 'attack' && v.soldiers.length >= scaled(s, A.relicArmy) * st.nerve) {
     st.goal = 'relic';
     breakStandOff(v);
   } else if (st.goal === 'relic' && s.relic.owner !== me && v.soldiers.length < A.retreatArmy) {
@@ -357,7 +371,7 @@ export function stepAI(s: Game): void {
     const v = look(s, p.id);
     if (plan) { st.nextStrategy = s.time + A.strategySeconds; strategy(v); }
     if (think) {
-      st.nextThink = s.time + A.thinkSeconds;
+      st.nextThink = s.time + level(s).think;
       economy(v);
       recruit(v);
       command(v);

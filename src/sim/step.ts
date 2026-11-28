@@ -2,6 +2,7 @@ import { stepAI } from './ai';
 import { nearLiveCamp, stepCamps } from './camps';
 import { acquireTargets, attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast, strikeAfterMoving } from './combat';
 import { issue, setOrder } from './commands';
+import { helped, sendToWork, stepHelper } from './helper';
 import { BUILDINGS, CFG, DT, RACES } from './data';
 import { updateFog } from './fog';
 import { spreadIdle } from './formation';
@@ -139,11 +140,14 @@ function stepBuilding(s: Game, b: Building): void {
         b.queue.shift();
         if (u.type === 'villager' && b.rallyTile >= 0 && isResource(s.terrain[b.rallyTile]))
           issue(s, b.owner, { type: 'gather', units: [u.id], tile: b.rallyTile });
+        else if (u.type === 'villager' && helped(s, b.owner)) sendToWork(s, u);
       } else head.remaining = 0;
     }
   } else if (b.autoVillager && b.type === 'towncenter') {
     const villagers = s.units.reduce((n, u) => n + (u.owner === b.owner && u.type === 'villager' ? 1 : 0), 0);
-    if (villagers < CFG.autoVillagerMax) issue(s, b.owner, { type: 'train', building: b.id, unit: 'villager' });
+    // The helper stops early, so it does not eat the food a new player needs for soldiers and the next age.
+    const max = helped(s, b.owner) ? CFG.difficulty[s.difficulty].helperVillagers : CFG.autoVillagerMax;
+    if (villagers < max) issue(s, b.owner, { type: 'train', building: b.id, unit: 'villager' });
   }
 }
 
@@ -166,6 +170,7 @@ export function step(s: Game): void {
   if (s.winner >= 0) return;
   s.tick++;
   s.time = s.tick * DT;
+  stepHelper(s);
   stepAI(s);
   for (const b of s.buildings.slice()) stepBuilding(s, b);
   // Everyone alive at the start of the tick acts; those brought down are removed afterwards, so

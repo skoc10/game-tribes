@@ -21,6 +21,7 @@ Dijital MVP'nin beş geliştirme adımının ([GDD bölüm 6.4](docs/GDD.md)) ko
 - **Mini harita** sol alttadır; ikazların yeri üzerinde yanıp söner, tıklayınca kamera oraya gider.
 - **Kale Çağı** okçuyu, süvariyi ve Demirci'yi açar. Üst çubuktaki ⬆ düğmesi ne eksik olduğunu söyler; kilitli binalar inşa menüsünde 🔒 ile görünür.
 - **Askeri düzen:** birlikte gönderilen askerler hedefte sıra olur (piyade önde, okçu arkada); üst üste duran askerler kendiliğinden açılır.
+- **Üç zorluk:** Çırak (varsayılan), Kâşif, Komutan. Kolay seviyelerde komşular daha yavaş gelişir ve küçük ordu tutar (kaynak hilesi yok, yalnızca ağırdan alırlar); oyuncunun köylüleri kendiliğinden üretilir ve işe gider. Çırak'ta barış 10 dakikadır.
 - **Dört halk** seçilebilir. Yaprakdiller ve Taşocaklılar deneyseldir: özel birimleri ve binaları yoktur, dengeleri ölçülmemiştir.
 
 ## Çalıştırma

@@ -197,7 +197,7 @@ function marchTogether(v: View, x: number, y: number, first: number, reach: numb
   const home = loose.filter((u) => dist(u.x, u.y, x, y) >= dist(u.x, u.y, rallyX, rallyY)).map((u) => u.id);
   if (forward.length && there > 0) issue(s, me, { type: 'attackMove', units: forward, x, y });
   else if (forward.length) home.push(...forward);
-  if (home.length) issue(s, me, { type: 'attackMove', units: home, x: rallyX, y: rallyY });
+  if (home.length) issue(s, me, { type: 'move', units: home, x: rallyX, y: rallyY });
 }
 
 function command(v: View): void {

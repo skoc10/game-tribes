@@ -73,7 +73,8 @@ export function drawBuilding(g: G, type: string, x: number, y: number, w: number
         g.fillStyle(st.trim).fillRect(cx - 6, base - 18, 12, 18);
         g.fillStyle(0xffe9a8).fillRect(cx - 4, y + 26, 8, 9);
       }
-      flag(g, cx, y + 10, 16, team, t);
+      // On the keep's battlements, or on the peak of the big tent.
+      flag(g, cx, st.tent ? base - 44 : y + 10, 16, team, t);
       break;
     }
     case 'farm': {

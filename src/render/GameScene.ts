@@ -35,6 +35,9 @@ export class GameScene extends Phaser.Scene {
   private minimap!: Minimap;
   private banner!: HTMLElement;
   private bannerTimer = 0;
+  private bannerQueue: { text: string; tone: string }[] = [];
+  private bannerShowing = false;
+  private nodesG!: Phaser.GameObjects.Graphics;
   private effects: Effect[] = [];
   private lastCooldown = new Map<number, number>();
   private lastSeen = new Map<number, { x: number; y: number }>();
@@ -67,6 +70,8 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const s = this.s;
     this.terrainG = this.add.graphics();
+    this.nodesG = this.add.graphics().setDepth(1);
+    this.bakeGround();
     this.entG = this.add.graphics().setDepth(2);
     this.fogG = this.add.graphics().setDepth(3.5);
     this.overG = this.add.graphics().setDepth(4);
@@ -292,19 +297,30 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** A large message across the top of the screen, read aloud and marked on the minimap. */
-  protected announce(text: string, tone: 'red' | 'green' | 'gold' | 'grey', at?: { x: number; y: number }, key?: string, every = 0): void {
+  protected announce(text: string, tone: 'red' | 'green' | 'gold' | 'grey', at?: { x: number; y: number }, key?: string, every = 0): boolean {
     const now = performance.now();
     if (key) {
-      if (now - (this.lastAlert.get(key) ?? -1e9) < every * 1000) return;
+      if (now - (this.lastAlert.get(key) ?? -1e9) < every * 1000) return false;
       this.lastAlert.set(key, now);
     }
-    this.banner.textContent = text;
-    this.banner.className = tone;
-    this.banner.style.display = 'block';
-    clearTimeout(this.bannerTimer);
-    this.bannerTimer = window.setTimeout(() => (this.banner.style.display = 'none'), 4500);
-    this.voice.speak(text);
     if (at) this.minimap.ping(at.x, at.y, { red: '#ff4d4d', green: '#4ade80', gold: '#ffd24a', grey: '#f2efe4' }[tone]);
+    // Several things can happen at once; show them one after another instead of only the last.
+    this.bannerQueue.push({ text, tone });
+    if (this.bannerQueue.length > 4) this.bannerQueue.shift();
+    if (!this.bannerShowing) this.nextBanner();
+    return true;
+  }
+
+  private nextBanner(): void {
+    const next = this.bannerQueue.shift();
+    this.bannerShowing = !!next;
+    if (!next) { this.banner.style.display = 'none'; return; }
+    this.banner.textContent = next.text;
+    this.banner.className = next.tone;
+    this.banner.style.display = 'block';
+    this.voice.speak(next.text);
+    clearTimeout(this.bannerTimer);
+    this.bannerTimer = window.setTimeout(() => this.nextBanner(), this.bannerQueue.length ? 2800 : 4500);
   }
 
   /** Turns simulation events into banners, speech, tones and floating text. */
@@ -344,14 +360,16 @@ export class GameScene extends Phaser.Scene {
     if (!s.players[this.me].alive || s.winner >= 0) return;
     for (const o of s.players) {
       if (o.id === this.me || !o.alive) continue;
-      const near = s.units.filter((u) => u.owner === o.id && isFighter(u) && Math.hypot(u.x - base.x, u.y - base.y) < 13 && this.visibleAt(u.x, u.y));
-      if (near.length < 2) continue;
+      const near = s.units.filter((u) => u.owner === o.id && isFighter(u) && u.type !== 'hero' && Math.hypot(u.x - base.x, u.y - base.y) < 13 && this.visibleAt(u.x, u.y));
+      // A lone patrol is not news; in peace, when nothing can happen, only a real army is.
+      if (near.length < (inPeace(s) ? 4 : 2)) continue;
       const at = { x: near[0].x, y: near[0].y }, st = this.stance(o.id);
-      if (st === 'war') { this.announce(`⚔ ${o.name} ordusu üssüne geliyor: ${near.length} asker. Savaştasınız!`, 'red', at, `near-war-${o.id}`, 40); this.voice.tone('alarm'); }
+      if (st === 'war') { if (this.announce(`⚔ ${o.name} ordusu üssüne geliyor. Savaştasınız!`, 'red', at, `near-war-${o.id}`, 40)) this.voice.tone('alarm'); }
       else if (st === 'pact') this.announce(`🤝 ${o.name} askerleri yakından geçiyor. Aranızda pakt var; saldıramazlar.`, 'green', at, `near-pact-${o.id}`, 90);
-      else if (inPeace(s)) this.announce(`🕊 ${o.name} askerleri üssünün yakınında. Barış sürüyor; kimse saldıramaz.`, 'grey', at, `near-peace-${o.id}`, 120);
+      else if (inPeace(s)) this.announce(`🕊 ${o.name} askerleri üssünün yakınında. Barış sürüyor; kimse saldıramaz.`, 'grey', at, `near-peace-${o.id}`, 240);
       else this.announce(`👀 ${o.name} askerleri üssünün yakınında. Aranızda anlaşma yok: saldırabilirler!`, 'gold', at, `near-neutral-${o.id}`, 60);
     }
+    for (const id of this.lastBuildingHp.keys()) if (!buildingById(s, id)) this.lastBuildingHp.delete(id);
     for (const b of s.buildings) {
       if (b.owner !== this.me) continue;
       const before = this.lastBuildingHp.get(b.id);
@@ -374,7 +392,8 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawTerrain(): void {
+  /** The grass never changes, so it is drawn once into a texture instead of being re-tessellated every frame. */
+  private bakeGround(): void {
     const s = this.s, g = this.terrainG;
     g.clear();
     for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
@@ -382,6 +401,16 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle([0x5d9140, 0x588a3c, 0x5a8d3e, 0x619644, 0x568639][h]).fillRect(x * TILE, y * TILE, TILE, TILE);
       if (h === 0) g.fillStyle(0x6ba34c).fillRect(x * TILE + 9, y * TILE + 20, 2, 5).fillRect(x * TILE + 21, y * TILE + 8, 2, 5);
     }
+    g.generateTexture('ground', s.w * TILE, s.h * TILE);
+    g.clear();
+    g.setVisible(false);
+    this.add.image(0, 0, 'ground').setOrigin(0).setDepth(0);
+  }
+
+  /** Trees, bushes and crystals: redrawn only when one of them is used up. */
+  private drawTerrain(): void {
+    const s = this.s, g = this.nodesG;
+    g.clear();
     for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
       const t = s.terrain[y * s.w + x];
       if (t === T_TREE || t === T_BUSH || t === T_CRYSTAL) drawNode(g, t, x * TILE, y * TILE, y * s.w + x);
@@ -407,8 +436,12 @@ export class GameScene extends Phaser.Scene {
     const g = this.entG, s = this.s, t = performance.now() / 1000, now = performance.now();
     g.clear();
     const seen = new Set<number>();
+    // Only what the camera can see is drawn.
+    const cam = this.cameras.main.worldView, pad = 3 * TILE;
+    const inView = (x: number, y: number) => x > cam.x - pad && x < cam.right + pad && y > cam.y - pad && y < cam.bottom + pad;
     for (const b of s.buildings) {
       const size = BUILDINGS[b.type].size, px = b.tx * TILE, py = b.ty * TILE, w = size * TILE;
+      if (!inView(px + w / 2, py + w / 2)) continue;
       // Buildings stay on the map once discovered; units need current sight.
       if (b.owner !== this.me && !isExplored(this.s, this.me, b.tx + size / 2, b.ty + size / 2)) continue;
       seen.add(b.id);
@@ -437,6 +470,7 @@ export class GameScene extends Phaser.Scene {
       // Units may share a tile in the simulation; fan them out a little so stacks stay visible.
       const x = u.x * TILE + ((u.id * 37) % 13) - 6, y = u.y * TILE + ((u.id * 53) % 13) - 6;
       this.lastSeen.set(u.id, { x, y });
+      if (!inView(x, y)) { this.lastCooldown.set(u.id, u.cooldown); continue; }
       // The ring under a unit says whose side it is on: white for a selection, red for an enemy at
       // war, green for a pact partner, pale for a neutral who could still attack.
       if (this.selUnits.includes(u.id)) g.lineStyle(2, 0xffffff).strokeEllipse(x, y + 7, 26, 11);
@@ -452,7 +486,8 @@ export class GameScene extends Phaser.Scene {
         const victim = unitById(s, u.order.kind === 'attack' && !u.order.building ? u.order.target : u.target);
         const tx = target ? (target.tx + BUILDINGS[target.type].size / 2) * TILE : victim ? victim.x * TILE : x;
         const ty = target ? (target.ty + BUILDINGS[target.type].size / 2) * TILE : victim ? victim.y * TILE : y;
-        this.effects.push({ x1: x, y1: y - 4, x2: tx, y2: ty, kind: UNITS[u.type].range > 0 ? 'arrow' : 'slash', until: now + 220, color: 0xffffff });
+        // A killing blow leaves no target to aim at (the puff marks it); a target in fog is not shown.
+        if ((target || victim) && this.visibleAt(tx / TILE, ty / TILE)) this.effects.push({ x1: x, y1: y - 4, x2: tx, y2: ty, kind: UNITS[u.type].range > 0 ? 'arrow' : 'slash', until: now + 220, color: 0xffffff });
       }
       this.lastCooldown.set(u.id, u.cooldown);
     }

@@ -31,11 +31,14 @@ export class Sound {
   /** Reads a short sentence aloud in Turkish. The same sentence is not repeated within a few seconds. */
   speak(text: string): void {
     if (!this.enabled || !window.speechSynthesis) return;
+    // Turkish read by a voice for another language is worse than silence.
+    if (!this.voice && window.speechSynthesis.getVoices().length > 0) return;
     // Emoji and symbols are for the eye, not the ear.
     const plain = text.replace(/[^\p{L}\p{N}\s.,:;!?'’%-]/gu, ' ').replace(/\s+/g, ' ').trim();
     if (!plain) return;
     const now = performance.now();
     if (now - (this.lastSpoken.get(plain) ?? -1e9) < 8000) return;
+    if (this.lastSpoken.size > 60) this.lastSpoken.clear();
     this.lastSpoken.set(plain, now);
     // Do not let a queue of old news build up behind the game.
     if (window.speechSynthesis.pending) window.speechSynthesis.cancel();

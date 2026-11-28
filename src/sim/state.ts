@@ -124,8 +124,9 @@ export function createGame(opts: GameOptions): Game {
     occ: new Int32Array(size * size), mapVersion: 0,
     units: [], buildings: [], players: [], nextId: 1, events: [],
     bases: [], center: { x: size / 2, y: size / 2 },
+    difficulty: opts.difficulty ?? 'komutan',
     camps: [], fog: [], fogVersion: 0, war: [],
-    peaceEnd: opts.peaceSeconds ?? CFG.peaceSeconds,
+    peaceEnd: opts.peaceSeconds ?? CFG.difficulty[opts.difficulty ?? 'komutan'].peaceSeconds,
     relic: { x: size / 2, y: size / 2, owner: -1, captor: -1, progress: 0, held: 0, counting: false },
     winner: -1, winKind: '',
     diplo: undefined as unknown as Game['diplo'], ai: [], fallen: [],
@@ -167,6 +168,8 @@ export function createGame(opts: GameOptions): Game {
     blob(s, mid.x, mid.y, 2, T_TREE, node.tree);
     for (let k = 0; k < 3; k++) placeNode(s, midCrystal.x + k * dx, midCrystal.y + k * dy, T_CRYSTAL, node.crystal);
 
+    // On the easier levels a human's Ana Merkez keeps villagers coming without being asked.
+    if (!setup.isAI && CFG.difficulty[s.difficulty].helper) tc.autoVillager = true;
     for (let v = 0; v < CFG.startVillagers; v++) spawnNear(s, tc, 'villager');
     spawnNear(s, tc, 'scout');
     spawnNear(s, tc, 'hero');
@@ -180,7 +183,7 @@ export function createGame(opts: GameOptions): Game {
   // Seeded variation so that no two matches play out identically.
   s.ai = s.players.map(() => ({
     nextThink: rand(s) * CFG.ai.thinkSeconds, nextStrategy: rand(s) * CFG.ai.strategySeconds,
-    enemy: -1, goal: 'none', nerve: 0.8 + rand(s) * 0.4, lastOffer: s.players.map(() => -999), blocker: -1,
+    enemy: -1, goal: 'none', lastVillager: -999, lastBuild: -999, nerve: 0.8 + rand(s) * 0.4, lastOffer: s.players.map(() => -999), blocker: -1,
   }));
   updateFog(s);
   return s;

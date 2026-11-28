@@ -4,7 +4,7 @@ import { agePrereqCount, issue, type Command } from '../sim/commands';
 import { BUILDINGS, CFG, DT, RACES, UNITS, canAfford } from '../sim/data';
 import { pactOf } from '../sim/diplomacy';
 import { isExplored, isVisible } from '../sim/fog';
-import { buildingById, canPlace, idleVillagers, isResource, unitById } from '../sim/state';
+import { buildingById, canPlace, idleVillagers, isResource, popCap, popUsed, unitById } from '../sim/state';
 import { inPeace } from '../sim/relations';
 import { step } from '../sim/step';
 import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type ResourceKind, type Unit } from '../sim/types';
@@ -364,6 +364,8 @@ export class GameScene extends Phaser.Scene {
   private watch(): void {
     const s = this.s, base = s.bases[this.me];
     if (!s.players[this.me].alive || s.winner >= 0) return;
+    if (popUsed(s, this.me) >= popCap(s, this.me) && popCap(s, this.me) < CFG.popMax)
+      this.announce('🏠 Nüfus sınırı doldu. Yeni birim için Ev kur!', 'gold', undefined, 'pop-full', 90);
     const p = s.players[this.me];
     if (p.age < 2 && agePrereqCount(s, this.me) >= CFG.age2.prereq && canAfford(p, CFG.age2.cost) && !s.buildings.some((b) => b.owner === this.me && b.research)
       && s.buildings.some((b) => b.owner === this.me && b.type === 'towncenter' && b.progress >= 1))

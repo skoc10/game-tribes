@@ -98,6 +98,7 @@ export interface Game {
   /** Tile positions of each player's start, used by map generation and AI. */
   bases: { x: number; y: number }[];
   center: { x: number; y: number };
+  difficulty: Difficulty;
   camps: Camp[];
   fog: Fog[];
   fogVersion: number;
@@ -146,7 +147,7 @@ export interface AIState {
   goal: 'none' | 'attack' | 'relic';
   /** Per-match temperament, 0.8..1.2: scales how large an army this AI wants before it moves. */
   nerve: number;
-  lastOffer: number[];
+  lastVillager: number; lastBuild: number; lastOffer: number[];
   /** Player seen blocking the relic at the previous strategy tick, -1 if none. */
   blocker: number;
 }
@@ -166,8 +167,11 @@ export interface Relic {
 
 export type Personality = '' | 'trader' | 'expander';
 export interface PlayerSetup { race: RaceId; isAI: boolean; name?: string; personality?: Personality }
+export type Difficulty = 'cirak' | 'kasif' | 'komutan';
 export interface GameOptions {
   seed: number; players: PlayerSetup[]; peaceSeconds?: number;
+  /** How fast the AI neighbours grow and how much help human players get. Defaults to 'komutan' (full speed, no help). */
+  difficulty?: Difficulty;
   /** Rotates which start position each seat gets (0 = seat 0 at the top). */
   seatOffset?: number;
 }

@@ -3,7 +3,7 @@ import { BUILDINGS, CFG, KINDS, TECHS, UNITS, canAfford, pay, techCost, trainTim
 import { formation } from './formation';
 import { answerOffer, endPact, gift, openHostilities, proposePact } from './diplomacy';
 import { addBuilding, buildingById, canPlace, isResource, nearestNode, popCap, popUsed, removeBuilding, unitById } from './state';
-import type { Game, Order, ResourceKind, Unit } from './types';
+import { T_BUSH, T_TREE, type Game, type Order, type ResourceKind, type Unit } from './types';
 
 export type Command =
   | { type: 'move'; units: number[]; x: number; y: number }
@@ -43,6 +43,24 @@ function own(s: Game, player: number, ids: number[]): Unit[] {
     if (u && u.owner === player) out.push(u);
   }
   return out;
+}
+
+/**
+ * Sends a villager to gather food or wood, whichever fewer of its owner's villagers are working on.
+ * The help human players get on the easier levels.
+ */
+export function sendToWork(s: Game, u: Unit): void {
+  let food = 0, wood = 0;
+  for (const o of s.units) {
+    if (o.owner !== u.owner || o.type !== 'villager') continue;
+    if (o.order.kind === 'farm' || (o.order.kind === 'gather' && o.order.terrain === T_BUSH)) food++;
+    else if (o.order.kind === 'gather' && o.order.terrain === T_TREE) wood++;
+  }
+  const first = food <= wood ? T_BUSH : T_TREE;
+  for (const terrain of [first, first === T_BUSH ? T_TREE : T_BUSH]) {
+    const tile = nearestNode(s, terrain, u.x, u.y, CFG.autoSwitchRadius);
+    if (tile >= 0) return setOrder(u, { kind: 'gather', tile, terrain });
+  }
 }
 
 const validPlayer = (s: Game, id: unknown): id is number => Number.isInteger(id) && (id as number) >= 0 && (id as number) < s.players.length;

@@ -188,5 +188,43 @@
       8,
       14
     ]
+  },
+  "difficulty": {
+    "cirak": {
+      "name": "Çırak",
+      "peaceSeconds": 600,
+      "think": 4,
+      "villagers": 12,
+      "villagerEvery": 28,
+      "armyPeace": 3,
+      "armyWar": 12,
+      "helper": true,
+      "ageUpAfter": 420,
+      "buildEvery": 30
+    },
+    "kasif": {
+      "name": "Kâşif",
+      "peaceSeconds": 480,
+      "think": 3,
+      "villagers": 17,
+      "villagerEvery": 16,
+      "armyPeace": 5,
+      "armyWar": 20,
+      "helper": true,
+      "ageUpAfter": 300,
+      "buildEvery": 12
+    },
+    "komutan": {
+      "name": "Komutan",
+      "peaceSeconds": 480,
+      "think": 2,
+      "villagers": 22,
+      "villagerEvery": 0,
+      "armyPeace": 6,
+      "armyWar": 30,
+      "helper": false,
+      "ageUpAfter": 0,
+      "buildEvery": 0
+    }
   }
 }

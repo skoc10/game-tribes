@@ -10,7 +10,13 @@ const FIGHTERS = new Set(['infantry', 'archer', 'cavalry', 'hero', 'beast']);
 
 export const clsOf = (u: Unit): string => UNITS[u.type].cls;
 export const isFighter = (u: Unit): boolean => FIGHTERS.has(clsOf(u));
-export const maxHp = (u: Unit): number => Math.round(UNITS[u.type].hp * u.scale);
+export const maxHp = (u: Unit): number => Math.round(UNITS[u.type].hp * u.scale * u.hpMult);
+
+/** Weapon range, including a people's archer bonus. */
+export function rangeOf(s: Game, u: Unit): number {
+  const base = UNITS[u.type].range;
+  return base > 0 && u.owner >= 0 && clsOf(u) === 'archer' ? base + RACES[s.players[u.owner].race].archerRange : base;
+}
 
 /** Damage multiplier of the combat triangle: 1.5 when strong, 0.75 when weak. */
 export function multiplier(attacker: string, defender: string): number {
@@ -100,7 +106,8 @@ function damageOf(s: Game, u: Unit): number {
 
 /** Damage after the defender's armour; a hit always does at least 1. */
 function afterArmor(s: Game, t: Unit, damage: number): number {
-  const armor = soldier(t) && s.players[t.owner].upgrades.includes('armor1') ? 1 : 0;
+  let armor = soldier(t) && s.players[t.owner].upgrades.includes('armor1') ? 1 : 0;
+  if (soldier(t) && clsOf(t) === 'infantry') armor += RACES[s.players[t.owner].race].infantryArmor;
   return Math.max(1, damage - armor);
 }
 
@@ -116,7 +123,7 @@ function settle(u: Unit, state: Travel): boolean {
 
 /** Moves into range of a unit and strikes when ready. Returns false if the target cannot be reached. */
 export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
-  const range = UNITS[u.type].range;
+  const range = rangeOf(s, u);
   const reach = range > 0 ? range + 0.5 : 1.5;
   if ((t.x - u.x) ** 2 + (t.y - u.y) ** 2 <= reach * reach) {
     u.path = null; u.pathKey = '';
@@ -143,7 +150,7 @@ export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
 
 export function engageBuilding(s: Game, u: Unit, b: Building): boolean {
   const size = BUILDINGS[b.type].size;
-  const range = UNITS[u.type].range;
+  const range = rangeOf(s, u);
   const dx = Math.max(b.tx - u.x, 0, u.x - (b.tx + size)), dy = Math.max(b.ty - u.y, 0, u.y - (b.ty + size));
   const reach = range > 0 ? range + 0.5 : 1.2;
   if (dx * dx + dy * dy <= reach * reach) {
@@ -183,7 +190,7 @@ export function autoFight(s: Game, u: Unit): boolean {
     const t = unitById(s, u.target);
     if (!t || !hostile(s, u.owner, t.owner) || (t.x - u.x) ** 2 + (t.y - u.y) ** 2 > CFG.combat.chase ** 2) u.target = 0;
   }
-  if (!u.target && (s.tick + u.id) % 5 === 0) u.target = nearestHostile(s, u, Math.max(CFG.combat.aggro, UNITS[u.type].range + 0.5))?.id ?? 0;
+  if (!u.target && (s.tick + u.id) % 5 === 0) u.target = nearestHostile(s, u, Math.max(CFG.combat.aggro, rangeOf(s, u) + 0.5))?.id ?? 0;
   const t = u.target ? unitById(s, u.target) : undefined;
   if (!t) return false;
   if (!engageUnit(s, u, t)) u.target = 0;
@@ -199,7 +206,7 @@ export function stepBeast(s: Game, u: Unit): void {
   if (!t && (s.tick + u.id) % 5 === 0) {
     let bestD = CFG.camp.aggro ** 2;
     for (const o of s.units) {
-      if (o.owner < 0 || o.type === 'scout') continue;
+      if (o.owner < 0 || o.type === 'scout' || o.hp <= 0) continue;
       const d = (o.x - camp.x) ** 2 + (o.y - camp.y) ** 2;
       if (d < bestD) { t = o; bestD = d; }
     }

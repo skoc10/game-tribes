@@ -1,7 +1,7 @@
 export type ResourceKind = 'food' | 'wood' | 'crystal';
 export type Resources = Record<ResourceKind, number>;
 export type Cost = Partial<Resources>;
-export type RaceId = 'sancak' | 'kul';
+export type RaceId = 'sancak' | 'kul' | 'yaprak' | 'tasocak';
 
 export const T_GRASS = 0;
 export const T_TREE = 1;
@@ -19,6 +19,8 @@ export interface BuildingDef {
 export interface RaceDef {
   name: string; gather: Resources; farm: number; unitCost: Record<string, number>;
   trainTime: number; buildingHp: number; techCost: number; loot: boolean; caravan: boolean;
+  /** Multipliers on unit hit points and movement speed; flat bonuses to archer range and infantry armour. */
+  unitHp: number; speed: number; archerRange: number; infantryArmor: number;
 }
 
 export type Order =
@@ -43,6 +45,8 @@ export interface Unit {
   scale: number;
   /** Index into Game.camps for neutral beasts, -1 otherwise. */
   camp: number;
+  /** Race multiplier on hit points, fixed when the unit is created. */
+  hpMult: number;
 }
 
 /** Owner id of neutral creatures. */

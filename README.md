@@ -13,6 +13,14 @@ Dört halktan birini seç, barış süresinde üssünü kur ve haritayı keşfet
 
 Dijital MVP'nin beş geliştirme adımının ([GDD bölüm 6.4](docs/GDD.md)) kodu yazıldı. Harita simetrisi, koltuk adaleti ve Harabe kuralı düzeltildi; iki halk yapay zekâ maçlarında hedefe yakın, ancak son değerler taze tohumlarda doğrulanmadı ([rapor](docs/denge-raporu.md)); çocuklarla oyun testi yapılmadı. Şu an çalışan: harita, ekonomi, bina ve birim üretimi, savaş üçgeni, savaş sisi, izciyle otomatik keşif, tarafsız kamplar, kahraman seviyesi, Külboyları ganimeti, barış süresi, Kale Çağı, Demirci geliştirmeleri, Kadim Harabe, iki zafer yolu, iki kişilikli yapay zekâ (Tüccar, Yayılmacı), Saldırmazlık Paktı, Güvenilirlik Puanı, ihanet ve koalisyon, "Neden?" günlüğü ve Sancak Kervanı.
 
+## Oyunu okumak
+
+- **Binalar** ne olduklarını gösteren resimlerle çizilir (kuleli Ana Merkez, çatılı Ev, tarlalı Çiftlik, kalkan ve kılıçlı Kışla, hedef tahtalı Okçuluk Alanı, atlı Ahır, bacası tüten Demirci); her halkın yapı tarzı farklıdır.
+- **Yabancı birliklerin altındaki halka** niyeti gösterir: kırmızı savaştasınız, yeşil paktınız var, beyaz anlaşma yok (saldırabilirler).
+- **Sesli ve yazılı ikazlar:** üssüne yaklaşan birlikler (saldırı mı, geçiş mi), savaş ilanı, pakt teklifi, saldırı altındaki bina, barışın bitişi ve Harabe'nin el değiştirmesi ekranın üstünde belirir ve Türkçe okunur. Üst çubuktaki 🔊 düğmesi sesi kapatır.
+- **Mini harita** sol alttadır; ikazların yeri üzerinde yanıp söner, tıklayınca kamera oraya gider.
+- **Dört halk** seçilebilir. Yaprakdiller ve Taşocaklılar deneyseldir: özel birimleri ve binaları yoktur, dengeleri ölçülmemiştir.
+
 ## Çalıştırma
 
 ```bash

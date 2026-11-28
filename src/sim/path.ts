@@ -26,17 +26,20 @@ export function findPath(
   if (isGoal(sx, sy)) return [];
   const { w, h } = s;
   const n = w * h;
-  const g = new Float32Array(n).fill(Infinity);
-  const f = new Float32Array(n);
+  // 64-bit, or the tiny tie-breaking terms below vanish in rounding.
+  const g = new Float64Array(n).fill(Infinity);
+  const f = new Float64Array(n);
   const from = new Int32Array(n).fill(-1);
   const closed = new Uint8Array(n);
   const heap: number[] = [];
   // Among equally short paths prefer the one that hugs the straight line from start to target.
   // Without this the choice falls to neighbour order, which is a screen direction: armies walking
   // down the map would bunch differently from armies walking up it, and one side would win battles.
-  const lx = sx - hx, ly = sy - hy;
+  const span = Math.hypot(sx - hx, sy - hy) || 1;
+  const lx = (sx - hx) / span, ly = (sy - hy) / span;
   const heur = (x: number, y: number) => {
     const dx = Math.abs(x - hx), dy = Math.abs(y - hy);
+    // Distance from the straight line, in tiles (bounded, so the estimate stays close to honest).
     const off = Math.abs((x - hx) * ly - (y - hy) * lx);
     // What is still tied is settled by a hash of the tile and the caller's salt rather than by
     // neighbour order, so no compass direction is favoured across many paths.

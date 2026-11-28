@@ -87,8 +87,9 @@ export function removeBuilding(s: Game, b: Building): void {
 }
 
 export function addUnit(s: Game, owner: number, type: string, x: number, y: number): Unit {
+  const hpMult = owner >= 0 ? RACES[s.players[owner].race].unitHp : 1;
   const u: Unit = {
-    id: s.nextId++, owner, type, x, y, hp: UNITS[type].hp,
+    id: s.nextId++, owner, type, x, y, hp: Math.round(UNITS[type].hp * hpMult), hpMult,
     order: { kind: 'idle' }, path: null, pathIdx: 0, pathKey: '',
     cooldown: 0, target: 0, scale: 1, camp: -1,
   };
@@ -135,7 +136,7 @@ export function createGame(opts: GameOptions): Game {
   opts.players.forEach((setup, i) => {
     s.players.push({
       id: i, race: setup.race, name: setup.name ?? RACES[setup.race].name, isAI: setup.isAI,
-      personality: setup.isAI ? setup.personality ?? (setup.race === 'kul' ? 'expander' : 'trader') : '',
+      personality: setup.isAI ? setup.personality ?? (setup.race === 'kul' || setup.race === 'yaprak' ? 'expander' : 'trader') : '',
       res: { ...CFG.startResources }, age: 1, alive: true, heroLevel: 1, heroXp: 0, heroRespawn: -1, upgrades: [], tcLostAt: -1,
     });
     s.fog.push({ explored: new Uint8Array(size * size), visible: new Uint8Array(size * size) });

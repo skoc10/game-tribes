@@ -37,6 +37,7 @@ function stepResearch(s: Game): void {
 /** The relic is taken by keeping soldiers beside it, alone, for the capture time. */
 function stepRelic(s: Game): void {
   const r = s.relic;
+  r.counting = false;
   if (inPeace(s)) return;
   const present = new Set<number>();
   for (const u of s.units) {

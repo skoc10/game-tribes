@@ -8,11 +8,18 @@ import { buildingById, canPlace, idleVillagers, isResource, unitById } from '../
 import { inPeace } from '../sim/relations';
 import { step } from '../sim/step';
 import { T_BUSH, T_CRYSTAL, T_TREE, type Building, type Game, type ResourceKind, type Unit } from '../sim/types';
+import { drawBuilding, drawNode, drawUnit as drawUnitArt } from './art';
+import { Sound } from './audio';
 import { Hud } from './hud';
+import { Minimap } from './minimap';
 
 export const TILE = 32;
 export const PLAYER_COLORS = [0x4c8dff, 0xe5533d, 0xe3c341, 0xb565e0];
-const TERRAIN_COLOR: Record<number, number> = { [T_TREE]: 0x1f5a2a, [T_BUSH]: 0xb8324a, [T_CRYSTAL]: 0x7fd8ff };
+const CSS_COLORS = PLAYER_COLORS.map((c) => '#' + c.toString(16).padStart(6, '0'));
+/** How another player's units stand towards the local player: the ring under them shows it. */
+type Stance = 'war' | 'pact' | 'neutral';
+const STANCE_COLOR: Record<Stance, number> = { war: 0xff4d4d, pact: 0x4ade80, neutral: 0xf2efe4 };
+interface Effect { x1: number; y1: number; x2: number; y2: number; kind: 'arrow' | 'slash' | 'puff'; until: number; color: number }
 
 export class GameScene extends Phaser.Scene {
   s!: Game;
@@ -24,6 +31,16 @@ export class GameScene extends Phaser.Scene {
   placing: string | null = null;
   showDiplomacy = true;
   hud!: Hud;
+  voice!: Sound;
+  private minimap!: Minimap;
+  private banner!: HTMLElement;
+  private bannerTimer = 0;
+  private effects: Effect[] = [];
+  private lastCooldown = new Map<number, number>();
+  private lastSeen = new Map<number, { x: number; y: number }>();
+  private lastBuildingHp = new Map<number, number>();
+  private lastAlert = new Map<string, number>();
+  private nextWatch = 0;
   /** A command waiting for the player to confirm a betrayal. */
   private pending: Command | null = null;
   private pausedBefore = false;
@@ -57,6 +74,11 @@ export class GameScene extends Phaser.Scene {
     cam.setBounds(-TILE * 2, -TILE * 4, (s.w + 4) * TILE, (s.h + 8) * TILE);
     cam.centerOn(s.bases[this.me].x * TILE, s.bases[this.me].y * TILE);
     this.hud = this.createHud();
+    this.voice = new Sound();
+    this.minimap = new Minimap(168, (fx, fy) => cam.centerOn(fx * s.w * TILE, fy * s.h * TILE));
+    this.banner = document.createElement('div');
+    this.banner.id = 'banner';
+    document.body.appendChild(this.banner);
 
     this.input.mouse?.disableContextMenu();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>;
@@ -96,6 +118,7 @@ export class GameScene extends Phaser.Scene {
       case 'ageUp': this.cmd({ type: 'ageUp', building: this.selBuilding }); break;
       case 'research': this.cmd({ type: 'research', building: this.selBuilding, tech: arg }); break;
       case 'restart': location.reload(); break;
+      case 'sound': this.voice.toggle(); break;
       case 'diplomacy': this.showDiplomacy = !this.showDiplomacy; break;
       case 'pact': this.cmd({ type: 'proposePact', to: Number(arg) }); break;
       case 'endpact': this.cmd({ type: 'endPact', other: Number(arg) }); break;
@@ -262,15 +285,81 @@ export class GameScene extends Phaser.Scene {
     this.hud.renderResult(this);
   }
 
-  /** Shows floating text for events that happened where the player can see them. */
+  /** How player `other` stands towards the local player right now. */
+  protected stance(other: number): Stance {
+    if (pactOf(this.s, this.me, other)) return 'pact';
+    return this.s.war[this.me][other] && !inPeace(this.s) ? 'war' : 'neutral';
+  }
+
+  /** A large message across the top of the screen, read aloud and marked on the minimap. */
+  protected announce(text: string, tone: 'red' | 'green' | 'gold' | 'grey', at?: { x: number; y: number }, key?: string, every = 0): void {
+    const now = performance.now();
+    if (key) {
+      if (now - (this.lastAlert.get(key) ?? -1e9) < every * 1000) return;
+      this.lastAlert.set(key, now);
+    }
+    this.banner.textContent = text;
+    this.banner.className = tone;
+    this.banner.style.display = 'block';
+    clearTimeout(this.bannerTimer);
+    this.bannerTimer = window.setTimeout(() => (this.banner.style.display = 'none'), 4500);
+    this.voice.speak(text);
+    if (at) this.minimap.ping(at.x, at.y, { red: '#ff4d4d', green: '#4ade80', gold: '#ffd24a', grey: '#f2efe4' }[tone]);
+  }
+
+  /** Turns simulation events into banners, speech, tones and floating text. */
   protected afterStep(): void {
     const events = this.s.events;
     for (; this.seenEvents < events.length; this.seenEvents++) {
       const e = events[this.seenEvents];
       if (e.player !== this.me) continue;
-      if (e.kind === 'loot' || e.kind === 'level') this.floatText(e.text, e.x ?? 0, e.y ?? 0, e.kind === 'loot' ? '#ffd24a' : '#9be7ff');
-      // Reasons live in the diplomacy panel; with the panel closed they still have to reach the player.
-      else if (e.kind !== 'why' || !this.showDiplomacy) this.hud.toast(e.text);
+      const at = e.x !== undefined && e.y !== undefined ? { x: e.x, y: e.y } : undefined;
+      switch (e.kind) {
+        case 'loot': this.floatText(e.text, e.x ?? 0, e.y ?? 0, '#ffd24a'); this.voice.tone('coin'); break;
+        case 'level': this.floatText(e.text, e.x ?? 0, e.y ?? 0, '#9be7ff'); this.voice.tone('chime'); break;
+        case 'peace': this.announce(e.text, 'gold'); if (e.text.startsWith('Boru')) this.voice.tone('horn'); break;
+        case 'war': case 'betrayal': case 'danger': this.announce(e.text, 'red', at); this.voice.tone('alarm'); break;
+        case 'offer': this.announce(e.text + ' Diplomasi panelinden yanıtla.', 'green'); this.voice.tone('chime'); break;
+        case 'pact': this.announce(e.text, 'green'); this.voice.tone('chime'); break;
+        case 'relic': this.announce(e.text, 'gold', { x: this.s.relic.x, y: this.s.relic.y }); break;
+        case 'age': this.announce(e.text, 'gold'); this.voice.tone('chime'); break;
+        case 'eliminated': this.announce(e.text, 'grey'); break;
+        case 'lost': this.hud.toast(e.text); if (at) this.minimap.ping(at.x, at.y, '#ff4d4d'); this.cameras.main.shake(180, 0.004); break;
+        // Reasons live in the diplomacy panel; with the panel closed they still have to reach the player.
+        case 'why': if (!this.showDiplomacy) this.hud.toast(e.text); break;
+        default: this.hud.toast(e.text);
+      }
+    }
+    if (this.s.winner >= 0 && !this.lastAlert.has('end')) { this.lastAlert.set('end', 0); this.voice.tone(this.s.winner === this.me ? 'win' : 'horn'); }
+    if (!this.paused && performance.now() >= this.nextWatch) { this.nextWatch = performance.now() + 1000; this.watch(); }
+  }
+
+  /**
+   * Tells the player what is happening at home: who has soldiers near the base and what that
+   * means (an attack, a pact partner passing, a neutral army that could attack), and when
+   * buildings are being hit.
+   */
+  private watch(): void {
+    const s = this.s, base = s.bases[this.me];
+    if (!s.players[this.me].alive || s.winner >= 0) return;
+    for (const o of s.players) {
+      if (o.id === this.me || !o.alive) continue;
+      const near = s.units.filter((u) => u.owner === o.id && isFighter(u) && Math.hypot(u.x - base.x, u.y - base.y) < 13 && this.visibleAt(u.x, u.y));
+      if (near.length < 2) continue;
+      const at = { x: near[0].x, y: near[0].y }, st = this.stance(o.id);
+      if (st === 'war') { this.announce(`⚔ ${o.name} ordusu üssüne geliyor: ${near.length} asker. Savaştasınız!`, 'red', at, `near-war-${o.id}`, 40); this.voice.tone('alarm'); }
+      else if (st === 'pact') this.announce(`🤝 ${o.name} askerleri yakından geçiyor. Aranızda pakt var; saldıramazlar.`, 'green', at, `near-pact-${o.id}`, 90);
+      else if (inPeace(s)) this.announce(`🕊 ${o.name} askerleri üssünün yakınında. Barış sürüyor; kimse saldıramaz.`, 'grey', at, `near-peace-${o.id}`, 120);
+      else this.announce(`👀 ${o.name} askerleri üssünün yakınında. Aranızda anlaşma yok: saldırabilirler!`, 'gold', at, `near-neutral-${o.id}`, 60);
+    }
+    for (const b of s.buildings) {
+      if (b.owner !== this.me) continue;
+      const before = this.lastBuildingHp.get(b.id);
+      this.lastBuildingHp.set(b.id, b.hp);
+      if (before !== undefined && b.hp < before - 0.5 && b.progress >= 1) {
+        const size = BUILDINGS[b.type].size;
+        this.announce(`🔥 ${BUILDINGS[b.type].name} saldırı altında!`, 'red', { x: b.tx + size / 2, y: b.ty + size / 2 }, 'under-attack', 20);
+      }
     }
   }
 
@@ -289,11 +378,13 @@ export class GameScene extends Phaser.Scene {
     const s = this.s, g = this.terrainG;
     g.clear();
     for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+      const h = (Math.imul(y * s.w + x + 7, 2654435761) >>> 0) % 5;
+      g.fillStyle([0x5d9140, 0x588a3c, 0x5a8d3e, 0x619644, 0x568639][h]).fillRect(x * TILE, y * TILE, TILE, TILE);
+      if (h === 0) g.fillStyle(0x6ba34c).fillRect(x * TILE + 9, y * TILE + 20, 2, 5).fillRect(x * TILE + 21, y * TILE + 8, 2, 5);
+    }
+    for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
       const t = s.terrain[y * s.w + x];
-      g.fillStyle((x + y) % 2 ? 0x5d9140 : 0x588a3c).fillRect(x * TILE, y * TILE, TILE, TILE);
-      if (t === T_TREE) g.fillStyle(TERRAIN_COLOR[t]).fillCircle(x * TILE + 16, y * TILE + 16, 14);
-      else if (t === T_BUSH) { g.fillStyle(0x2f6b2f).fillCircle(x * TILE + 16, y * TILE + 16, 12); g.fillStyle(TERRAIN_COLOR[t]).fillCircle(x * TILE + 12, y * TILE + 13, 4).fillCircle(x * TILE + 20, y * TILE + 19, 4); }
-      else if (t === T_CRYSTAL) g.fillStyle(TERRAIN_COLOR[t]).fillTriangle(x * TILE + 16, y * TILE + 3, x * TILE + 28, y * TILE + 28, x * TILE + 4, y * TILE + 28);
+      if (t === T_TREE || t === T_BUSH || t === T_CRYSTAL) drawNode(g, t, x * TILE, y * TILE, y * s.w + x);
     }
     this.drawnMap = s.mapVersion;
   }
@@ -313,7 +404,7 @@ export class GameScene extends Phaser.Scene {
   protected visibleAt(x: number, y: number): boolean { return isVisible(this.s, this.me, x, y); }
 
   protected drawEntities(): void {
-    const g = this.entG, s = this.s;
+    const g = this.entG, s = this.s, t = performance.now() / 1000, now = performance.now();
     g.clear();
     const seen = new Set<number>();
     for (const b of s.buildings) {
@@ -321,32 +412,71 @@ export class GameScene extends Phaser.Scene {
       // Buildings stay on the map once discovered; units need current sight.
       if (b.owner !== this.me && !isExplored(this.s, this.me, b.tx + size / 2, b.ty + size / 2)) continue;
       seen.add(b.id);
-      g.fillStyle(PLAYER_COLORS[b.owner], b.progress < 1 ? 0.4 : 0.95).fillRect(px + 2, py + 2, w - 4, w - 4);
-      g.lineStyle(2, b.id === this.selBuilding ? 0xffffff : 0x1b1b1b).strokeRect(px + 2, py + 2, w - 4, w - 4);
+      drawBuilding(g, b.type, px, py, w, PLAYER_COLORS[b.owner], s.players[b.owner].race, b.progress >= 1, t);
+      if (b.id === this.selBuilding) g.lineStyle(2, 0xffffff).strokeRect(px + 1, py + 1, w - 2, w - 2);
+      else if (b.owner !== this.me) g.lineStyle(2, STANCE_COLOR[this.stance(b.owner)], 0.7).strokeRect(px + 1, py + 1, w - 2, w - 2);
       if (b.progress < 1) this.bar(px + 4, py + w - 10, w - 8, b.progress, 0xf0d060);
-      else if (b.hp < b.maxHp) this.bar(px + 4, py + 4, w - 8, b.hp / b.maxHp, 0x55dd55);
+      else if (b.hp < b.maxHp) this.bar(px + 4, py + 2, w - 8, b.hp / b.maxHp, 0x55dd55);
       if (b.research) this.bar(px + 4, py + w - 16, w - 8, 1 - b.research.remaining / b.research.total, 0xc084fc);
       if (b.queue[0]) this.bar(px + 4, py + w - 10, w - 8, 1 - b.queue[0].remaining / b.queue[0].total, 0x66ccff);
       let label = this.labels.get(b.id);
       if (!label) {
-        label = this.add.text(0, 0, BUILDINGS[b.type].name, { fontSize: '11px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5).setDepth(3);
+        label = this.add.text(0, 0, BUILDINGS[b.type].name, { fontSize: '10px', color: '#ffffff', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5, 0).setDepth(3);
         this.labels.set(b.id, label);
       }
-      label.setPosition(px + w / 2, py + w / 2);
+      label.setPosition(px + w / 2, py + w - 2);
     }
     for (const [id, label] of this.labels) if (!seen.has(id)) { label.destroy(); this.labels.delete(id); }
     this.drawRelic();
     this.drawCaravans();
 
+    const alive = new Set<number>();
     for (const u of s.units) {
-      if (!this.visibleAt(u.x, u.y)) continue;
+      alive.add(u.id);
+      if (!this.visibleAt(u.x, u.y)) { this.lastSeen.delete(u.id); this.lastCooldown.set(u.id, u.cooldown); continue; }
       // Units may share a tile in the simulation; fan them out a little so stacks stay visible.
-      const x = u.x * TILE + ((u.id * 37) % 9) - 4, y = u.y * TILE + ((u.id * 53) % 9) - 4;
-      if (this.selUnits.includes(u.id)) g.lineStyle(2, 0xffffff).strokeCircle(x, y, 13);
-      this.drawUnit(u, x, y);
+      const x = u.x * TILE + ((u.id * 37) % 13) - 6, y = u.y * TILE + ((u.id * 53) % 13) - 6;
+      this.lastSeen.set(u.id, { x, y });
+      // The ring under a unit says whose side it is on: white for a selection, red for an enemy at
+      // war, green for a pact partner, pale for a neutral who could still attack.
+      if (this.selUnits.includes(u.id)) g.lineStyle(2, 0xffffff).strokeEllipse(x, y + 7, 26, 11);
+      else if (u.owner >= 0 && u.owner !== this.me) g.lineStyle(2, STANCE_COLOR[this.stance(u.owner)], 0.85).strokeEllipse(x, y + 7, 24, 10);
+      const cls = UNITS[u.type].cls;
+      drawUnitArt(g, cls, x, y, this.unitColor(u), { moving: !!u.path && u.pathIdx < u.path.length, t, id: u.id });
       const max = this.maxHp(u);
-      if (u.hp < max) this.bar(x - 10, y - 16, 20, u.hp / max, 0x55dd55);
+      if (u.hp < max) this.bar(x - 10, y - (cls === 'hero' ? 26 : 22), 20, u.hp / max, 0x55dd55);
+      // A strike shows as an arrow in flight or a flash on the target.
+      const before = this.lastCooldown.get(u.id) ?? 0;
+      if (u.cooldown > before + 0.5) {
+        const target = u.order.kind === 'attack' && u.order.building ? buildingById(s, u.order.target) : undefined;
+        const victim = unitById(s, u.order.kind === 'attack' && !u.order.building ? u.order.target : u.target);
+        const tx = target ? (target.tx + BUILDINGS[target.type].size / 2) * TILE : victim ? victim.x * TILE : x;
+        const ty = target ? (target.ty + BUILDINGS[target.type].size / 2) * TILE : victim ? victim.y * TILE : y;
+        this.effects.push({ x1: x, y1: y - 4, x2: tx, y2: ty, kind: UNITS[u.type].range > 0 ? 'arrow' : 'slash', until: now + 220, color: 0xffffff });
+      }
+      this.lastCooldown.set(u.id, u.cooldown);
     }
+    // Anything that was in sight and is gone leaves a puff where it stood.
+    for (const [id, pos] of this.lastSeen) if (!alive.has(id)) { this.effects.push({ x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y, kind: 'puff', until: now + 500, color: 0xdddddd }); this.lastSeen.delete(id); }
+    for (const id of this.lastCooldown.keys()) if (!alive.has(id)) this.lastCooldown.delete(id);
+
+    this.effects = this.effects.filter((e) => e.until > now);
+    for (const e of this.effects) {
+      const left = (e.until - now) / (e.kind === 'puff' ? 500 : 220);
+      if (e.kind === 'arrow') {
+        const k = 1 - left, ax = e.x1 + (e.x2 - e.x1) * k, ay = e.y1 + (e.y2 - e.y1) * k - Math.sin(k * Math.PI) * 10;
+        const d = Math.hypot(e.x2 - e.x1, e.y2 - e.y1) || 1;
+        g.lineStyle(2, 0xf5e6c8).lineBetween(ax, ay, ax - ((e.x2 - e.x1) / d) * 9, ay - ((e.y2 - e.y1) / d) * 9);
+      } else if (e.kind === 'slash') {
+        g.lineStyle(3, 0xffffff, left).beginPath();
+        g.arc(e.x2, e.y2, 11, -1 + (1 - left) * 2, 0.6 + (1 - left) * 2).strokePath();
+      } else {
+        g.fillStyle(e.color, left * 0.7).fillCircle(e.x1, e.y1 - (1 - left) * 10, 5 + (1 - left) * 12);
+      }
+    }
+
+    const view = this.cameras.main.worldView;
+    this.minimap.render(s, this.me, CSS_COLORS, { x: view.x / TILE, y: view.y / TILE, w: view.width / TILE, h: view.height / TILE });
   }
 
   /** Sancak Kervanı: a wagon shuttling between the two bases for every pact a caravan people holds. */
@@ -380,25 +510,6 @@ export class GameScene extends Phaser.Scene {
 
   protected maxHp(u: Unit): number { return maxHp(u); }
   protected unitColor(u: Unit): number { return PLAYER_COLORS[u.owner] ?? 0x8a5fb0; }
-
-  /** One shape per unit class so armies are readable without colour alone. */
-  protected drawUnit(u: Unit, x: number, y: number): void {
-    const g = this.entG;
-    g.fillStyle(this.unitColor(u)).lineStyle(1.5, 0x111111);
-    switch (UNITS[u.type].cls) {
-      case 'villager': g.fillCircle(x, y, 6).strokeCircle(x, y, 6); break;
-      case 'scout': g.fillTriangle(x, y - 8, x + 6, y + 6, x - 6, y + 6).strokeTriangle(x, y - 8, x + 6, y + 6, x - 6, y + 6); break;
-      case 'beast': g.fillTriangle(x - 8, y + 6, x + 8, y + 6, x, y - 9).strokeTriangle(x - 8, y + 6, x + 8, y + 6, x, y - 9); g.fillStyle(0xffffff).fillCircle(x - 3, y, 1.5).fillCircle(x + 3, y, 1.5); break;
-      case 'infantry': g.fillRect(x - 7, y - 7, 14, 14).strokeRect(x - 7, y - 7, 14, 14); break;
-      case 'archer': g.fillTriangle(x - 8, y - 7, x + 8, y - 7, x, y + 9).strokeTriangle(x - 8, y - 7, x + 8, y - 7, x, y + 9); break;
-      case 'cavalry': {
-        const pts = [new Phaser.Geom.Point(x, y - 10), new Phaser.Geom.Point(x + 10, y), new Phaser.Geom.Point(x, y + 10), new Phaser.Geom.Point(x - 10, y)];
-        g.fillPoints(pts, true).strokePoints(pts, true);
-        break;
-      }
-      default: g.fillCircle(x, y, 10).strokeCircle(x, y, 10); g.fillStyle(0xffe066).fillCircle(x, y, 4);
-    }
-  }
 
   protected bar(x: number, y: number, w: number, frac: number, color: number): void {
     this.entG.fillStyle(0x000000, 0.7).fillRect(x, y, w, 5);

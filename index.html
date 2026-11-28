@@ -21,8 +21,12 @@
     #menu { position: absolute; inset: 0; z-index: 10; background: #10140f; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
     #menu h1 { margin: 0; font-size: 34px; }
     #menu .races { display: flex; gap: 18px; }
-    #menu .race { width: 250px; text-align: left; padding: 14px; font-size: 15px; }
+    #menu .race { width: 240px; text-align: left; padding: 14px; font-size: 15px; }
     #menu .race b { font-size: 19px; display: block; margin-bottom: 6px; }
+    #menu .races { flex-wrap: wrap; justify-content: center; max-width: 1100px; }
+    #menu .race ul { margin: 8px 0 0; padding-left: 4px; list-style: none; font-size: 13px; opacity: .9; }
+    #menu .race li { margin: 3px 0; }
+    #menu .tag { font-size: 11px; background: #8a6a1f; border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
     #side { position: absolute; right: 0; top: 78px; width: 300px; max-height: calc(100% - 190px); overflow: auto; background: rgba(20, 24, 18, .92); border: 2px solid #5b6b47; border-right: 0; border-radius: 8px 0 0 8px; padding: 8px 10px; z-index: 5; font-size: 13px; }
     #side h3 { margin: 8px 0 4px; font-size: 13px; opacity: .8; text-transform: uppercase; letter-spacing: .04em; }
     #side .rival { border-top: 1px solid #44523a; padding: 6px 0; }
@@ -32,6 +36,12 @@
     #confirm { position: absolute; inset: 0; z-index: 9; background: rgba(8, 10, 8, .7); display: flex; align-items: center; justify-content: center; }
     #confirm > div { background: #1c2217; border: 2px solid #e0734a; border-radius: 10px; padding: 18px 22px; max-width: 420px; font-size: 16px; }
     #confirm button { margin: 14px 10px 0 0; }
+    #banner { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); max-width: 70%; padding: 10px 22px; border-radius: 10px; font-size: 20px; font-weight: 700; text-align: center; z-index: 7; display: none; box-shadow: 0 4px 18px rgba(0, 0, 0, .5); border: 2px solid; }
+    #banner.red { background: rgba(120, 25, 20, .95); border-color: #ff6b5a; }
+    #banner.green { background: rgba(22, 80, 44, .95); border-color: #4ade80; }
+    #banner.gold { background: rgba(110, 80, 15, .95); border-color: #ffd24a; }
+    #banner.grey { background: rgba(40, 46, 38, .95); border-color: #b9c2ab; }
+    #minimap { position: absolute; left: 10px; bottom: 96px; width: 168px; height: 168px; border: 2px solid #5b6b47; border-radius: 6px; z-index: 5; background: #05070a; cursor: pointer; }
     #result { position: absolute; inset: 0; z-index: 9; background: rgba(8, 10, 8, .85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font-size: 18px; }
     #result h1 { margin: 0; font-size: 44px; }
     .help { opacity: .75; font-size: 12px; max-width: 560px; text-align: center; }

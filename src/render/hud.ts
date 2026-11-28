@@ -1,5 +1,5 @@
 import { agePrereqCount } from '../sim/commands';
-import { BUILDINGS, CFG, RACES, TECHS, UNITS, techCost, unitCost } from '../sim/data';
+import { BUILDINGS, CFG, RACES, TECHS, UNITS, canAfford, techCost, unitCost } from '../sim/data';
 import { isTraitor, pactOf } from '../sim/diplomacy';
 import { inPeace } from '../sim/relations';
 import { relicCountdown } from '../sim/rules';
@@ -83,6 +83,7 @@ export class Hud {
       `<span class="stat">${ICON.crystal} ${Math.floor(p.res.crystal)}</span>`,
       `<span class="stat">👥 ${popUsed(v.s, v.me)}/${popCap(v.s, v.me)}</span>`,
       `<span class="stat">Çağ ${p.age}</span>`,
+      this.ageTop(v),
       this.extraTop(v),
       `<span class="grow"></span>`,
       `<button data-act="diplomacy" class="${v.showDiplomacy ? 'on' : ''}">🤝 Diplomasi${v.s.diplo.offers.some((o) => o.to === v.me) ? ' ❗' : ''}</button>`,
@@ -94,6 +95,18 @@ export class Hud {
       `<button data-act="pause" class="${v.paused ? 'on' : ''}">${v.paused ? '▶ Devam' : '⏸ Duraklat'}</button>`,
       speedBtn(0.5), speedBtn(1), speedBtn(1.5),
     ].join('');
+  }
+
+  /** The road to the Kale Çağı, always in view: archers, riders and the Demirci all wait behind it. */
+  private ageTop(v: HudView): string {
+    const s = v.s, p = s.players[v.me];
+    if (p.age >= 2) return '';
+    const busy = s.buildings.find((b) => b.owner === v.me && b.research?.id === 'age2');
+    if (busy) return `<span class="stat">⬆ Kale Çağı %${Math.floor((1 - busy.research!.remaining / busy.research!.total) * 100)}</span>`;
+    const have = agePrereqCount(s, v.me);
+    if (have < CFG.age2.prereq) return `<button data-act="ageTop" title="Okçu, süvari ve Demirci Kale Çağı'nda açılır">⬆ Kale Çağı: önce Ev, Çiftlik, Kışla'dan ${CFG.age2.prereq} farklısını kur (${have}/${CFG.age2.prereq})</button>`;
+    if (!canAfford(p, CFG.age2.cost)) return `<button data-act="ageTop" title="Okçu, süvari ve Demirci Kale Çağı'nda açılır">⬆ Kale Çağı: ${costText(CFG.age2.cost)} biriktir</button>`;
+    return `<button data-act="ageTop" class="on">⬆ Kale Çağı'na geç! <small>okçu, süvari, Demirci</small></button>`;
   }
 
   /** Peace timer and relic status: the two clocks every player must be able to see. */
@@ -141,7 +154,8 @@ export class Hud {
     if (counts.has('scout')) parts.push(`<button data-act="explore">🧭 Otomatik keşfet<small>kamplara girmez</small></button>`);
     if (counts.has('villager')) {
       for (const [id, def] of Object.entries(BUILDINGS)) {
-        if (def.age > p.age) continue;
+        // Locked buildings stay visible, so it is clear they exist and what unlocks them.
+        if (def.age > p.age) { parts.push(`<button data-act="locked" class="locked">🔒 ${def.name}<small>Kale Çağı gerekir</small></button>`); continue; }
         parts.push(`<button data-act="build:${id}">${def.name}<small>${costText(def.cost)}</small></button>`);
       }
     }
@@ -156,7 +170,7 @@ export class Hud {
       parts.push(`<span>🔬 ${name}: %${Math.floor((1 - b.research.remaining / b.research.total) * 100)}</span>`);
     } else if (b.type === 'towncenter' && p.age < 2) {
       const have = agePrereqCount(s, v.me);
-      const need = have < CFG.age2.prereq ? `önce ${CFG.age2.prereq} farklı bina (${have}/${CFG.age2.prereq})` : costText(CFG.age2.cost);
+      const need = have < CFG.age2.prereq ? `önce Ev, Çiftlik, Kışla'dan ${CFG.age2.prereq} farklısı (${have}/${CFG.age2.prereq})` : costText(CFG.age2.cost);
       parts.push(`<button data-act="ageUp">⬆ Kale Çağı'na geç<small>${need}</small></button>`);
     } else if (b.type === 'blacksmith') {
       for (const id of Object.keys(TECHS)) {

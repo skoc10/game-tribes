@@ -49,7 +49,7 @@ menu.innerHTML = `<h1>Boylar: Kadim Miras</h1><div>Halkını seç</div><div clas
     const b = RACE_BLURB[r];
     return `<button class="race" data-race="${r}"><b>${b.title}${b.note ? ` <span class="tag">${b.note}</span>` : ''}</b>${b.text}<ul>${b.perks.map((p) => `<li>${p}</li>`).join('')}</ul></button>`;
   }).join('')
-}</div><div class="help">İlk 8 dakika barış: üssünü kur, keşfet, kamp avla. Sonra Kadim Harabe'yi alıp başında 3 dakika nöbet tut ya da rakipleri yen. İki komşun var: barışçıl bir Tüccar ve saldırgan bir Yayılmacı. Onlarla savaşabilir ya da pakt yapabilirsin.<br>“Deneysel” halkların özel birimi ve binası henüz yok; dengeleri ölçülmedi.</div>`;
+}</div><div class="help">İlk 8 dakika barış: üssünü kur, keşfet, kamp avla. Sonra Kadim Harabe'yi alıp başında 3 dakika nöbet tut ya da rakipleri yen. İki komşun var: barışçıl bir Tüccar ve saldırgan bir Yayılmacı. Onlarla savaşabilir ya da pakt yapabilirsin.<br>Okçu, süvari ve Demirci <b>Kale Çağı</b>'nda açılır: iki farklı bina kur, kaynak biriktir, üstteki ⬆ düğmesine bas.<br>“Deneysel” halkların özel birimi ve binası henüz yok; dengeleri ölçülmedi.</div>`;
 menu.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest('[data-race]') as HTMLElement | null;
   if (el) start(el.dataset.race as RaceId);

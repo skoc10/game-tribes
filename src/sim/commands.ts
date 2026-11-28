@@ -1,5 +1,6 @@
 import { isFighter } from './combat';
 import { BUILDINGS, CFG, KINDS, TECHS, UNITS, canAfford, pay, techCost, trainTime, unitCost } from './data';
+import { formation } from './formation';
 import { answerOffer, endPact, gift, openHostilities, proposePact } from './diplomacy';
 import { addBuilding, buildingById, canPlace, isResource, nearestNode, popCap, popUsed, removeBuilding, unitById } from './state';
 import type { Game, Order, ResourceKind, Unit } from './types';
@@ -60,7 +61,8 @@ export function issue(s: Game, player: number, cmd: Command): Result {
   if (s.winner >= 0) return fail('Maç bitti');
   switch (cmd.type) {
     case 'move': {
-      for (const u of own(s, player, cmd.units)) setOrder(u, { kind: 'move', x: cmd.x, y: cmd.y });
+      const group = own(s, player, cmd.units), slots = formation(s, group, cmd.x, cmd.y);
+      for (const u of group) setOrder(u, { kind: 'move', ...slots.get(u.id)! });
       return OK;
     }
     case 'gather': {
@@ -136,8 +138,8 @@ export function issue(s: Game, player: number, cmd: Command): Result {
     case 'endPact': return validPlayer(s, cmd.other) ? endPact(s, player, cmd.other) : fail('Geçersiz taraf');
     case 'gift': return validPlayer(s, cmd.to) ? gift(s, player, cmd.to, cmd.kind, cmd.amount) : fail('Geçersiz taraf');
     case 'attackMove': {
-      for (const u of own(s, player, cmd.units))
-        setOrder(u, isFighter(u) ? { kind: 'attackMove', x: cmd.x, y: cmd.y } : { kind: 'move', x: cmd.x, y: cmd.y });
+      const group = own(s, player, cmd.units), slots = formation(s, group, cmd.x, cmd.y);
+      for (const u of group) setOrder(u, { kind: isFighter(u) ? 'attackMove' : 'move', ...slots.get(u.id)! });
       return OK;
     }
     case 'explore': {

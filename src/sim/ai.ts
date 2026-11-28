@@ -173,8 +173,11 @@ function recruit(v: View): void {
 const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, ay - by);
 const free = (u: Unit) => u.order.kind === 'idle' && u.target === 0;
 
+/** A full army standing in ranks is this wide; anyone closer than this has arrived and is not ordered again. */
+const ARRIVED = 5.5;
+
 function sendArmy(v: View, x: number, y: number, onlyFree = true): void {
-  const ids = v.army.filter((u) => (!onlyFree || free(u)) && dist(u.x, u.y, x, y) > 3).map((u) => u.id);
+  const ids = v.army.filter((u) => (!onlyFree || free(u)) && dist(u.x, u.y, x, y) > ARRIVED).map((u) => u.id);
   if (ids.length) issue(v.s, v.me, { type: 'attackMove', units: ids, x, y });
 }
 

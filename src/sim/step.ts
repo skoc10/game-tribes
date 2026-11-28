@@ -1,15 +1,18 @@
 import { stepAI } from './ai';
 import { nearLiveCamp, stepCamps } from './camps';
-import { attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast } from './combat';
+import { acquireTargets, attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast, strikeAfterMoving } from './combat';
 import { issue, setOrder } from './commands';
 import { BUILDINGS, CFG, DT, RACES } from './data';
 import { updateFog } from './fog';
+import { spreadIdle } from './formation';
 import { besideRect, goTo } from './move';
 import { walkable } from './path';
 import { stepRules } from './rules';
 import { buildingById, isResource, nearestNode, spawnNear } from './state';
 import { T_BUSH, T_CRYSTAL, T_GRASS, T_TREE, type Building, type Game, type ResourceKind, type Unit } from './types';
 
+/** Ticks between checks for idle soldiers crowding one tile. */
+const SPREAD_EVERY = 10;
 const KIND_OF: Record<number, ResourceKind> = { [T_TREE]: 'wood', [T_BUSH]: 'food', [T_CRYSTAL]: 'crystal' };
 
 function stepGather(s: Game, u: Unit, tile: number, terrain: number): void {
@@ -167,9 +170,13 @@ export function step(s: Game): void {
   for (const b of s.buildings.slice()) stepBuilding(s, b);
   // Everyone alive at the start of the tick acts; those brought down are removed afterwards, so
   // blows landed in the same tick are simultaneous and no seat strikes first.
+  for (const u of s.units) { u.px = u.x; u.py = u.y; }
+  acquireTargets(s);
   for (const u of s.units.slice()) stepUnit(s, u);
+  strikeAfterMoving(s);
   for (const f of s.fallen) if (s.units.includes(f.unit)) killUnit(s, f.unit, f.killer);
   s.fallen.length = 0;
+  if (s.tick % SPREAD_EVERY === 0) spreadIdle(s);
   stepCamps(s);
   stepHeroes(s);
   stepRules(s);

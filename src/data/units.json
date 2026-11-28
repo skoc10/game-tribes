@@ -1,9 +1,9 @@
 {
-  "villager": {"name": "Köylü", "cls": "villager", "cost": {"food": 50}, "hp": 25, "damage": 3, "range": 0, "speed": 1.0, "sight": 4, "trainTime": 15, "pop": 1},
+  "villager": {"name": "Köylü", "cls": "villager", "cost": {"food": 50}, "hp": 25, "damage": 3, "range": 0, "speed": 1.0, "sight": 4, "trainTime": 10, "pop": 1},
   "scout": {"name": "İzci", "cls": "scout", "cost": {"food": 60}, "hp": 30, "damage": 0, "range": 0, "speed": 1.8, "sight": 7, "trainTime": 15, "pop": 1},
-  "infantry": {"name": "Piyade", "cls": "infantry", "cost": {"food": 50, "wood": 20}, "hp": 60, "damage": 7, "range": 0, "speed": 1.0, "sight": 4, "trainTime": 18, "pop": 1},
-  "archer": {"name": "Okçu", "cls": "archer", "cost": {"food": 25, "wood": 45}, "hp": 35, "damage": 6, "range": 5, "speed": 1.0, "sight": 6, "trainTime": 20, "pop": 1},
-  "cavalry": {"name": "Süvari", "cls": "cavalry", "cost": {"food": 80, "crystal": 25}, "hp": 90, "damage": 9, "range": 0, "speed": 1.5, "sight": 5, "trainTime": 25, "pop": 2},
+  "infantry": {"name": "Piyade", "cls": "infantry", "cost": {"food": 50, "wood": 20}, "hp": 60, "damage": 7, "range": 0, "speed": 1.0, "sight": 4, "trainTime": 12, "pop": 1},
+  "archer": {"name": "Okçu", "cls": "archer", "cost": {"food": 25, "wood": 45}, "hp": 35, "damage": 6, "range": 5, "speed": 1.0, "sight": 6, "trainTime": 14, "pop": 1},
+  "cavalry": {"name": "Süvari", "cls": "cavalry", "cost": {"food": 80, "crystal": 25}, "hp": 90, "damage": 9, "range": 0, "speed": 1.5, "sight": 5, "trainTime": 17, "pop": 2},
   "hero": {"name": "Kahraman", "cls": "hero", "cost": {}, "hp": 200, "damage": 12, "range": 0, "speed": 1.2, "sight": 6, "trainTime": 0, "pop": 0},
   "beast": {"name": "Yaratık", "cls": "beast", "cost": {}, "hp": 45, "damage": 5, "range": 0, "speed": 1.1, "sight": 5, "trainTime": 0, "pop": 0}
 }

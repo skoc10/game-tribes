@@ -7,13 +7,13 @@
     "wood": 200,
     "crystal": 0
   },
-  "startVillagers": 4,
+  "startVillagers": 5,
   "gatherPerMinute": {
-    "food": 28,
-    "wood": 28,
-    "crystal": 18
+    "food": 34,
+    "wood": 34,
+    "crystal": 22
   },
-  "farmPerMinute": 26,
+  "farmPerMinute": 32,
   "nodeAmount": {
     "tree": 150,
     "bush": 250,

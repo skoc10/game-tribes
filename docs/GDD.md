@@ -59,7 +59,7 @@ Dört çağ, barış süresi ve Anıt/Kalıntı koruma sürelerinin 30–40 daki
 
 ### 1.5 Bir maçın akışı (Kâşif zorluğu)
 
-**Başlangıç.** Her taraf haritanın bir köşesinde şunlarla başlar: Ana Merkez, 4 köylü, seviye 1 kahraman, **1 ücretsiz izci**, 200 yiyecek, 200 odun, 100 taş. Harita savaş sisiyle kaplıdır.
+**Başlangıç.** Her taraf haritanın bir köşesinde şunlarla başlar: Ana Merkez, 5 köylü, seviye 1 kahraman, **1 ücretsiz izci**, 200 yiyecek, 200 odun, 100 taş. Harita savaş sisiyle kaplıdır.
 
 **0–8. dk — Barış Süresi (hazırlık).**
 - Kimse rakip birim ya da binaya hasar veremez. Ekranın üstünde barış sayacı görünür.
@@ -199,10 +199,10 @@ Ortak kurallar: Her halkın 1 kahramanı vardır ve maça onunla başlar. Seviye
 
 | Kaynak | Nereden | Stratejik rolü | Köylü başına toplama |
 |---|---|---|---|
-| **Yiyecek** | Çalı, av, çiftlik (yenilenir) | Büyüme: köylü, piyade, süvari, çağ atlama | ~28/dk (çiftlik ~26/dk) |
-| **Odun** | Ormanlar | Altyapı: binalar, çiftlik, okçu, kuşatma | ~28/dk |
+| **Yiyecek** | Çalı, av, çiftlik (yenilenir) | Büyüme: köylü, piyade, süvari, çağ atlama | ~34/dk (çiftlik ~32/dk) |
+| **Odun** | Ormanlar | Altyapı: binalar, çiftlik, okçu, kuşatma | ~34/dk |
 | **Taş** | Az sayıda taş ocağı (tükenir) | Savunma: sur, kule, kale ve Büyük Anıt | ~22/dk |
-| **Büyü Kristali** | Küçük kristal damarları, **ticaret**, kalıntılar, meteor yatakları | Güç: teknoloji, süvari, büyücü, ileri çağlar | ~18/dk |
+| **Büyü Kristali** | Küçük kristal damarları, **ticaret**, kalıntılar, meteor yatakları | Güç: teknoloji, süvari, büyücü, ileri çağlar | ~22/dk |
 
 Tasarım notları:
 
@@ -239,11 +239,11 @@ Tüm halklar için ortaktır; halk bonusları bunun üzerine uygulanır.
 
 | Birim | Çağ | Maliyet | Can | Hasar | Menzil | Hız | Üretim | Nüfus |
 |---|---|---|---|---|---|---|---|---|
-| Köylü | I | 50 yiyecek | 25 | 3 | Yakın | Orta | 15 sn | 1 |
+| Köylü | I | 50 yiyecek | 25 | 3 | Yakın | Orta | 10 sn | 1 |
 | İzci | I | İlki ücretsiz; sonrakiler 60 yiyecek | 30 | — (savaşamaz) | — | Çok hızlı | 15 sn | 1 |
-| Piyade | I | 50 yiyecek, 20 odun | 60 | 7 | Yakın | Orta | 18 sn | 1 |
-| Okçu | II | 25 yiyecek, 45 odun | 35 | 6 | 5 | Orta | 20 sn | 1 |
-| Süvari | II | 80 yiyecek, 25 kristal | 90 | 9 | Yakın | Hızlı | 25 sn | 2 |
+| Piyade | I | 50 yiyecek, 20 odun | 60 | 7 | Yakın | Orta | 12 sn | 1 |
+| Okçu | II | 25 yiyecek, 45 odun | 35 | 6 | 5 | Orta | 14 sn | 1 |
+| Süvari | II | 80 yiyecek, 25 kristal | 90 | 9 | Yakın | Hızlı | 17 sn | 2 |
 | Kuşatma | III | 150 odun, 100 taş | 120 | 14 (binalara ×3.0 ile 42) | 7 | Yavaş | 40 sn | 3 |
 | Büyücü | III | 60 yiyecek, 80 kristal | 40 | 12 (alan) | 5 | Orta | 35 sn | 2 |
 

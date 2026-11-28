@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { clsOf, isFighter, maxHp, multiplier } from '../sim/combat';
-import { issue, type Command } from '../sim/commands';
-import { BUILDINGS, CFG, DT, RACES, UNITS } from '../sim/data';
+import { agePrereqCount, issue, type Command } from '../sim/commands';
+import { BUILDINGS, CFG, DT, RACES, UNITS, canAfford } from '../sim/data';
 import { pactOf } from '../sim/diplomacy';
 import { isExplored, isVisible } from '../sim/fog';
 import { buildingById, canPlace, idleVillagers, isResource, unitById } from '../sim/state';
@@ -121,6 +121,12 @@ export class GameScene extends Phaser.Scene {
       case 'build': this.placing = arg; break;
       case 'cancel': this.cmd({ type: 'cancel', building: this.selBuilding }); break;
       case 'ageUp': this.cmd({ type: 'ageUp', building: this.selBuilding }); break;
+      case 'ageTop': {
+        const tc = this.s.buildings.find((b) => b.owner === this.me && b.type === 'towncenter' && b.progress >= 1);
+        if (tc) this.cmd({ type: 'ageUp', building: tc.id }); else this.hud.toast('Önce Ana Merkez gerekli');
+        break;
+      }
+      case 'locked': this.hud.toast('Bu bina Kale Çağı\'nda açılır. Üstteki ⬆ Kale Çağı düğmesine bak.'); break;
       case 'research': this.cmd({ type: 'research', building: this.selBuilding, tech: arg }); break;
       case 'restart': location.reload(); break;
       case 'sound': this.voice.toggle(); break;
@@ -358,6 +364,10 @@ export class GameScene extends Phaser.Scene {
   private watch(): void {
     const s = this.s, base = s.bases[this.me];
     if (!s.players[this.me].alive || s.winner >= 0) return;
+    const p = s.players[this.me];
+    if (p.age < 2 && agePrereqCount(s, this.me) >= CFG.age2.prereq && canAfford(p, CFG.age2.cost) && !s.buildings.some((b) => b.owner === this.me && b.research)
+      && s.buildings.some((b) => b.owner === this.me && b.type === 'towncenter' && b.progress >= 1))
+      this.announce('⬆ Kale Çağı\'na geçebilirsin! Okçu ve süvari orada açılır. Üstteki düğmeye bas.', 'gold', undefined, 'age-ready', 1e9);
     for (const o of s.players) {
       if (o.id === this.me || !o.alive) continue;
       const near = s.units.filter((u) => u.owner === o.id && isFighter(u) && u.type !== 'hero' && Math.hypot(u.x - base.x, u.y - base.y) < 13 && this.visibleAt(u.x, u.y));

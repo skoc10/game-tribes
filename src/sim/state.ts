@@ -89,7 +89,7 @@ export function removeBuilding(s: Game, b: Building): void {
 export function addUnit(s: Game, owner: number, type: string, x: number, y: number): Unit {
   const hpMult = owner >= 0 ? RACES[s.players[owner].race].unitHp : 1;
   const u: Unit = {
-    id: s.nextId++, owner, type, x, y, hp: Math.round(UNITS[type].hp * hpMult), hpMult,
+    id: s.nextId++, owner, type, x, y, px: x, py: y, hp: Math.round(UNITS[type].hp * hpMult), hpMult,
     order: { kind: 'idle' }, path: null, pathIdx: 0, pathKey: '',
     cooldown: 0, target: 0, scale: 1, camp: -1,
   };

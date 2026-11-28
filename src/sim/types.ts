@@ -36,6 +36,8 @@ export type Order =
 
 export interface Unit {
   id: number; owner: number; type: string; x: number; y: number; hp: number;
+  /** Position at the start of the current tick. Combat decisions read these, so the order units are processed in cannot matter. */
+  px: number; py: number;
   order: Order; path: number[] | null; pathIdx: number; pathKey: string;
   /** Seconds until the next attack. */
   cooldown: number;

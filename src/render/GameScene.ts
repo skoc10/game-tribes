@@ -365,8 +365,9 @@ export class GameScene extends Phaser.Scene {
     const s = this.s, base = s.bases[this.me];
     if (!s.players[this.me].alive || s.winner >= 0) return;
     const p = s.players[this.me];
-    if (p.age < 2 && agePrereqCount(s, this.me) >= CFG.age2.prereq && canAfford(p, CFG.age2.cost) && !s.buildings.some((b) => b.owner === this.me && b.research))
-      this.announce('⬆ Kale Çağı\'na geçebilirsin! Okçu ve süvari orada açılır. Üstteki düğmeye bas.', 'gold', undefined, 'age-ready', 120);
+    if (p.age < 2 && agePrereqCount(s, this.me) >= CFG.age2.prereq && canAfford(p, CFG.age2.cost) && !s.buildings.some((b) => b.owner === this.me && b.research)
+      && s.buildings.some((b) => b.owner === this.me && b.type === 'towncenter' && b.progress >= 1))
+      this.announce('⬆ Kale Çağı\'na geçebilirsin! Okçu ve süvari orada açılır. Üstteki düğmeye bas.', 'gold', undefined, 'age-ready', 1e9);
     for (const o of s.players) {
       if (o.id === this.me || !o.alive) continue;
       const near = s.units.filter((u) => u.owner === o.id && isFighter(u) && u.type !== 'hero' && Math.hypot(u.x - base.x, u.y - base.y) < 13 && this.visibleAt(u.x, u.y));

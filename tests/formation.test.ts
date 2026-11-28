@@ -43,6 +43,31 @@ describe('formation', () => {
     for (const u of all) expect(Math.hypot(u.x - 32.5, u.y - 20.5)).toBeLessThan(3);
   });
 
+  it('armies sent to a tile corner from opposite sides take mirror-image blocks', () => {
+    const block = (fromX: number) => {
+      const s = newGame(1, ['sancak', 'sancak']);
+      s.units = [];
+      const all = Array.from({ length: 20 }, () => addUnit(s, 0, 'infantry', fromX, 32.5));
+      issue(s, 0, { type: 'move', units: all.map((u) => u.id), x: 32, y: 32 });
+      return all.map((u) => u.order.kind === 'move' ? [u.order.x, u.order.y] : [0, 0]);
+    };
+    const west = block(20.5).map(([x, y]) => `${x},${y}`).sort();
+    const east = block(43.5).map(([x, y]) => `${64 - x},${64 - y}`).sort();
+    expect(east).toEqual(west);
+  });
+
+  it('a soldier is never sent to a tile it cannot walk to', () => {
+    const s = newGame(1, ['sancak', 'sancak']);
+    s.units = [];
+    // A grass tile walled in by trees, two tiles from the stack.
+    for (let y = 18; y <= 22; y++) for (let x = 30; x <= 36; x++) if (s.terrain[y * s.w + x] !== 0) s.terrain[y * s.w + x] = 0;
+    for (const [x, y] of [[33, 20], [35, 20], [34, 19], [34, 21], [33, 19], [35, 19], [33, 21], [35, 21]]) s.terrain[y * s.w + x] = 1;
+    const all = Array.from({ length: 14 }, () => addUnit(s, 0, 'infantry', 32.5, 20.5));
+    run(s, 20);
+    for (const u of all) { expect(u.order.kind).toBe('idle'); expect(`${Math.floor(u.x)},${Math.floor(u.y)}`).not.toBe('34,20'); }
+    expect(new Set(all.map(tileOf)).size).toBe(all.length);
+  });
+
   it('villagers are left alone', () => {
     const s = newGame(1, ['sancak', 'sancak']);
     s.units = [];

@@ -59,7 +59,7 @@ Dört çağ, barış süresi ve Anıt/Kalıntı koruma sürelerinin 30–40 daki
 
 ### 1.5 Bir maçın akışı (Kâşif zorluğu)
 
-**Başlangıç.** Her taraf haritanın bir köşesinde şunlarla başlar: Ana Merkez, 4 köylü, seviye 1 kahraman, **1 ücretsiz izci**, 200 yiyecek, 200 odun, 100 taş. Harita savaş sisiyle kaplıdır.
+**Başlangıç.** Her taraf haritanın bir köşesinde şunlarla başlar: Ana Merkez, 5 köylü, seviye 1 kahraman, **1 ücretsiz izci**, 200 yiyecek, 200 odun, 100 taş. Harita savaş sisiyle kaplıdır.
 
 **0–8. dk — Barış Süresi (hazırlık).**
 - Kimse rakip birim ya da binaya hasar veremez. Ekranın üstünde barış sayacı görünür.

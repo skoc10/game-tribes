@@ -1,6 +1,6 @@
 import { stepAI } from './ai';
 import { nearLiveCamp, stepCamps } from './camps';
-import { attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast, strikeAfterMoving } from './combat';
+import { acquireTargets, attackTarget, autoFight, isFighter, killUnit, maxHp, stepBeast, strikeAfterMoving } from './combat';
 import { issue, setOrder } from './commands';
 import { BUILDINGS, CFG, DT, RACES } from './data';
 import { updateFog } from './fog';
@@ -170,6 +170,8 @@ export function step(s: Game): void {
   for (const b of s.buildings.slice()) stepBuilding(s, b);
   // Everyone alive at the start of the tick acts; those brought down are removed afterwards, so
   // blows landed in the same tick are simultaneous and no seat strikes first.
+  for (const u of s.units) { u.px = u.x; u.py = u.y; }
+  acquireTargets(s);
   for (const u of s.units.slice()) stepUnit(s, u);
   strikeAfterMoving(s);
   for (const f of s.fallen) if (s.units.includes(f.unit)) killUnit(s, f.unit, f.killer);

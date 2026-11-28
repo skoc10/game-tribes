@@ -157,13 +157,15 @@ export function strikeAfterMoving(s: Game): void {
 /** Moves into range of a unit and strikes when ready. Returns false if the target cannot be reached. */
 export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
   const reach = reachOf(s, u);
-  if (within(u, t, reach)) {
+  // Whether to strike or walk is decided from where both stood when the tick began. A unit handled
+  // later in the list must not profit from its opponent having already stepped closer.
+  if ((t.px - u.px) ** 2 + (t.py - u.py) ** 2 <= reach * reach) {
     u.path = null; u.pathKey = '';
     strike(s, u, t);
     return true;
   }
   // The goal is the real reach test from the tile centre, so arriving means being able to hit.
-  const tx = Math.floor(t.x), ty = Math.floor(t.y), px = t.x, py = t.y, near = (reach - REACH_MARGIN) ** 2;
+  const tx = Math.floor(t.px), ty = Math.floor(t.py), px = t.px, py = t.py, near = (reach - REACH_MARGIN) ** 2;
   const goal = (x: number, y: number) => (x + 0.5 - px) ** 2 + (y + 0.5 - py) ** 2 <= near;
   closing.push({ unit: u, target: t });
   return settle(u, goTo(s, u, `a${t.id}:${tx},${ty}`, goal, tx, ty));
@@ -197,7 +199,7 @@ function nearestHostile(s: Game, u: Unit, radius: number): Unit | undefined {
   let best: Unit | undefined, bestD = radius * radius, bestH = 0;
   for (const o of s.units) {
     if (o.hp <= 0 || !hostile(s, u.owner, o.owner)) continue;
-    const d = (o.x - u.x) ** 2 + (o.y - u.y) ** 2;
+    const d = (o.px - u.px) ** 2 + (o.py - u.py) ** 2;
     if (d > bestD + 1e-9) continue;
     const h = Math.imul(o.id * 73 + u.id, 2654435761) >>> 0;
     if (d < bestD - 1e-9 || !best || h > bestH) { best = o; bestD = d; bestH = h; }
@@ -205,14 +207,25 @@ function nearestHostile(s: Game, u: Unit, radius: number): Unit | undefined {
   return best;
 }
 
+/**
+ * Before anyone acts: every idle or attack-moving soldier without a target looks for one. All look
+ * on the same ticks and from start-of-tick positions, so neither unit id nor list order lets one
+ * side see the other first.
+ */
+export function acquireTargets(s: Game): void {
+  if (s.tick % ACQUIRE_EVERY !== 0) return;
+  for (const u of s.units) {
+    if (u.owner < 0 || u.target || !isFighter(u) || (u.order.kind !== 'idle' && u.order.kind !== 'attackMove')) continue;
+    u.target = nearestHostile(s, u, Math.max(CFG.combat.aggro, rangeOf(s, u) + 0.5))?.id ?? 0;
+  }
+}
+
 /** Lets an idle or attack-moving fighter pick and fight nearby enemies. Returns true while fighting. */
 export function autoFight(s: Game, u: Unit): boolean {
   if (u.target) {
     const t = unitById(s, u.target);
-    if (!t || !hostile(s, u.owner, t.owner) || (t.x - u.x) ** 2 + (t.y - u.y) ** 2 > CFG.combat.chase ** 2) u.target = 0;
+    if (!t || !hostile(s, u.owner, t.owner) || (t.px - u.px) ** 2 + (t.py - u.py) ** 2 > CFG.combat.chase ** 2) u.target = 0;
   }
-  // Everyone looks for a target on the same ticks: a per-unit stagger would let some ids see the enemy first.
-  if (!u.target && s.tick % ACQUIRE_EVERY === 0) u.target = nearestHostile(s, u, Math.max(CFG.combat.aggro, rangeOf(s, u) + 0.5))?.id ?? 0;
   const t = u.target ? unitById(s, u.target) : undefined;
   if (!t) return false;
   if (!engageUnit(s, u, t)) u.target = 0;
@@ -224,12 +237,12 @@ export function stepBeast(s: Game, u: Unit): void {
   const camp = s.camps[u.camp];
   if (!camp) return;
   let t = u.target ? unitById(s, u.target) : undefined;
-  if (t && (t.x - camp.x) ** 2 + (t.y - camp.y) ** 2 > CFG.camp.leash ** 2) t = undefined;
+  if (t && (t.px - camp.x) ** 2 + (t.py - camp.y) ** 2 > CFG.camp.leash ** 2) t = undefined;
   if (!t && s.tick % ACQUIRE_EVERY === 0) {
     let bestD = CFG.camp.aggro ** 2;
     for (const o of s.units) {
       if (o.owner < 0 || o.type === 'scout' || o.hp <= 0) continue;
-      const d = (o.x - camp.x) ** 2 + (o.y - camp.y) ** 2;
+      const d = (o.px - camp.x) ** 2 + (o.py - camp.y) ** 2;
       if (d < bestD) { t = o; bestD = d; }
     }
   }

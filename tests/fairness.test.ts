@@ -57,3 +57,26 @@ describe('seeding and tie-breaking', () => {
     expect(there.length).toBe(back.length);
   });
 });
+
+describe('no first strike, whatever the ids or the gap', () => {
+  it.each([[2, 0], [3, 0], [4, 0], [3, 7], [4, 3]])('gap %i, id offset %i: both fall together', (gap, skip) => {
+    const s = newGame(1, ['sancak', 'sancak']);
+    s.units = [];
+    s.nextId += skip;
+    const a = addUnit(s, 0, 'infantry', 32.5, 30.5), b = addUnit(s, 1, 'infantry', 32.5, 30.5 + gap);
+    s.war[0][1] = s.war[1][0] = true;
+    run(s, 60);
+    expect(s.units.includes(a)).toBe(false);
+    expect(s.units.includes(b)).toBe(false);
+  });
+
+  it('the same holds when the later-listed soldier belongs to the first seat', () => {
+    const s = newGame(1, ['sancak', 'sancak']);
+    s.units = [];
+    const b = addUnit(s, 1, 'infantry', 30.5, 32.5), a = addUnit(s, 0, 'infantry', 34.5, 32.5);
+    s.war[0][1] = s.war[1][0] = true;
+    run(s, 60);
+    expect(s.units.includes(a)).toBe(false);
+    expect(s.units.includes(b)).toBe(false);
+  });
+});

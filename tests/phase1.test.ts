@@ -39,9 +39,10 @@ describe('economy', () => {
     expect(issue(s, 0, { type: 'gather', units: ids, tile }).ok).toBe(true);
     run(s, 80);
     const gained = s.players[0].res.wood - before;
-    // 4 villagers for ~60 s of work after walking: about 4 * 28.
-    expect(gained).toBeGreaterThan(70);
-    expect(gained).toBeLessThan(4 * 28 * (80 / 60) + 1);
+    // Roughly a minute of work after walking, and never more than the full 80 s at the configured rate.
+    const perSecond = (ids.length * CFG.gatherPerMinute.wood) / 60;
+    expect(gained).toBeGreaterThan(perSecond * 40);
+    expect(gained).toBeLessThan(perSecond * 80 + 1);
   });
 
   it('moves on to the next node when one runs out', () => {

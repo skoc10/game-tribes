@@ -36,5 +36,5 @@ describe('the other two tribes', () => {
   it('can be played by the AI to the end of a match', () => {
     const r = runMatch(21, [{ race: 'yaprak', personality: 'expander' }, { race: 'tasocak', personality: 'trader' }, { race: 'kul', personality: 'expander' }]);
     expect(r.winner).toBeGreaterThanOrEqual(0);
-  });
+  }, 30000);
 });

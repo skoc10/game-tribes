@@ -6,6 +6,8 @@ import type { Building, Cost, Game, Unit } from './types';
 
 const MULT = CFG.combat.multipliers as Record<string, Record<string, number>>;
 const VS_BUILDING = CFG.combat.vsBuilding as Record<string, number>;
+/** Ticks between looks for a new target; the same ticks for every unit. */
+const ACQUIRE_EVERY = 5;
 const FIGHTERS = new Set(['infantry', 'archer', 'cavalry', 'hero', 'beast']);
 
 export const clsOf = (u: Unit): string => UNITS[u.type].cls;
@@ -121,30 +123,49 @@ function settle(u: Unit, state: Travel): boolean {
   return true;
 }
 
+/** Lands a blow if the weapon is ready. The target must already be within reach. */
+function strike(s: Game, u: Unit, t: Unit): void {
+  // Already brought down this tick by someone else: nothing left to hit.
+  if (t.hp <= 0 || u.cooldown > 0) return;
+  u.cooldown = CFG.combat.cooldown;
+  t.hp -= afterArmor(s, t, damageOf(s, u) * multiplier(clsOf(u), clsOf(t)));
+  // Deaths are settled after every unit has acted, so the order units are processed in gives no first strike.
+  if (t.hp <= 0) s.fallen.push({ unit: t, killer: u.owner });
+  // A fighter with nothing better to do turns on whoever is hitting it, even from beyond its own aggro range.
+  // Beasts do the same, so a camp cannot be shot down from outside its aggro circle.
+  else if (!t.target && isFighter(t) && (t.owner < 0 || t.order.kind === 'idle' || t.order.kind === 'attackMove')) t.target = u.id;
+  // A camp fights as a pack: hitting one creature rouses the rest.
+  if (t.owner < 0 && t.camp >= 0) for (const o of s.units) if (o.owner < 0 && o.camp === t.camp && !o.target) o.target = u.id;
+}
+
+const reachOf = (s: Game, u: Unit): number => { const range = rangeOf(s, u); return range > 0 ? range + 0.5 : 1.5; };
+const within = (u: Unit, t: Unit, reach: number): boolean => (t.x - u.x) ** 2 + (t.y - u.y) ** 2 <= reach * reach;
+
+/** Units that walked towards a target this tick; emptied by strikeAfterMoving in the same tick. */
+const closing: { unit: Unit; target: Unit }[] = [];
+
+/**
+ * Second chance to strike for units that spent their turn walking. Without it, of two soldiers
+ * closing on each other the one processed later would find the other already in reach and always
+ * hit one tick earlier.
+ */
+export function strikeAfterMoving(s: Game): void {
+  for (const c of closing) if (within(c.unit, c.target, reachOf(s, c.unit))) strike(s, c.unit, c.target);
+  closing.length = 0;
+}
+
 /** Moves into range of a unit and strikes when ready. Returns false if the target cannot be reached. */
 export function engageUnit(s: Game, u: Unit, t: Unit): boolean {
-  const range = rangeOf(s, u);
-  const reach = range > 0 ? range + 0.5 : 1.5;
-  if ((t.x - u.x) ** 2 + (t.y - u.y) ** 2 <= reach * reach) {
+  const reach = reachOf(s, u);
+  if (within(u, t, reach)) {
     u.path = null; u.pathKey = '';
-    // Already brought down this tick by someone else: nothing left to hit.
-    if (t.hp <= 0) return true;
-    if (u.cooldown <= 0) {
-      u.cooldown = CFG.combat.cooldown;
-      t.hp -= afterArmor(s, t, damageOf(s, u) * multiplier(clsOf(u), clsOf(t)));
-      // Deaths are settled after every unit has acted, so the order units are processed in gives no first strike.
-      if (t.hp <= 0) s.fallen.push({ unit: t, killer: u.owner });
-      // A fighter with nothing better to do turns on whoever is hitting it, even from beyond its own aggro range.
-      // Beasts do the same, so a camp cannot be shot down from outside its aggro circle.
-      else if (!t.target && isFighter(t) && (t.owner < 0 || t.order.kind === 'idle' || t.order.kind === 'attackMove')) t.target = u.id;
-      // A camp fights as a pack: hitting one creature rouses the rest.
-      if (t.owner < 0 && t.camp >= 0) for (const o of s.units) if (o.owner < 0 && o.camp === t.camp && !o.target) o.target = u.id;
-    }
+    strike(s, u, t);
     return true;
   }
   // The goal is the real reach test from the tile centre, so arriving means being able to hit.
   const tx = Math.floor(t.x), ty = Math.floor(t.y), px = t.x, py = t.y, near = (reach - REACH_MARGIN) ** 2;
   const goal = (x: number, y: number) => (x + 0.5 - px) ** 2 + (y + 0.5 - py) ** 2 <= near;
+  closing.push({ unit: u, target: t });
   return settle(u, goTo(s, u, `a${t.id}:${tx},${ty}`, goal, tx, ty));
 }
 
@@ -190,7 +211,8 @@ export function autoFight(s: Game, u: Unit): boolean {
     const t = unitById(s, u.target);
     if (!t || !hostile(s, u.owner, t.owner) || (t.x - u.x) ** 2 + (t.y - u.y) ** 2 > CFG.combat.chase ** 2) u.target = 0;
   }
-  if (!u.target && (s.tick + u.id) % 5 === 0) u.target = nearestHostile(s, u, Math.max(CFG.combat.aggro, rangeOf(s, u) + 0.5))?.id ?? 0;
+  // Everyone looks for a target on the same ticks: a per-unit stagger would let some ids see the enemy first.
+  if (!u.target && s.tick % ACQUIRE_EVERY === 0) u.target = nearestHostile(s, u, Math.max(CFG.combat.aggro, rangeOf(s, u) + 0.5))?.id ?? 0;
   const t = u.target ? unitById(s, u.target) : undefined;
   if (!t) return false;
   if (!engageUnit(s, u, t)) u.target = 0;
@@ -203,7 +225,7 @@ export function stepBeast(s: Game, u: Unit): void {
   if (!camp) return;
   let t = u.target ? unitById(s, u.target) : undefined;
   if (t && (t.x - camp.x) ** 2 + (t.y - camp.y) ** 2 > CFG.camp.leash ** 2) t = undefined;
-  if (!t && (s.tick + u.id) % 5 === 0) {
+  if (!t && s.tick % ACQUIRE_EVERY === 0) {
     let bestD = CFG.camp.aggro ** 2;
     for (const o of s.units) {
       if (o.owner < 0 || o.type === 'scout' || o.hp <= 0) continue;
